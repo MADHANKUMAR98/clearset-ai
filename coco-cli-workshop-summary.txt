@@ -1,0 +1,118 @@
+# Snowflake Cocoa CLI: Revolutionizing AI-Driven Data Engineering Workflows
+
+This session presents **Snowflake Cocoa CLI**, an advanced AI-driven platform designed specifically for data professionals to accelerate the entire data engineering lifecycle—from ideation to production-grade deployment—within the Snowflake ecosystem. Cocoa CLI emphasizes **enterprise-grade governance, security, and live operational context** tailored to Snowflake, outperforming general-purpose AI coding tools.
+
+## 1. Evolution and Importance of AI Agents in Data Workflows
+
+Agentic coding has moved beyond simple code autocomplete to **autonomous AI agents capable of reading repositories, editing code, running tests, and managing pull requests**. This shift has drastically boosted productivity, with around **85% of professional developers adopting AI for coding, and 70% targeting increased efficiency**.
+
+- Key challenge: **Trust and accuracy of AI responses remain a top concern.**
+- Industry gap: General-purpose AI agents lack deep integration with enterprise governance, back-end controls, and dynamic operational contexts.
+- Snowflake's solution: Introduced Cocoa, a **data-native AI coding agent** deeply embedded into Snowflake’s platform and governance framework.
+
+## 2. What is Snowflake Cocoa?
+
+Cocoa is a **specialized AI agent built exclusively for the Snowflake environment**, designed to accelerate complex data engineering tasks, machine learning workflows, dashboard creation, and agent orchestration through conversational natural language interfaces.
+
+- Provides **real-time, live connectivity to Snowflake data, schema, warehouses, and RBAC controls**.
+- Supports **end-to-end pipeline creation** covering ingestion, processing, and consumption layers.
+- Offers an **enterprise-grade trust model and governance inherited from Snowflake**.
+- Integrates with Snowflake’s semantic layer and operational metadata to deliver **faithful, secure, and optimized outputs**.
+
+## 3. Architecture & Functional Layers of Cocoa
+
+| Layer            | Description                                                                                     | Cocoa Role                                                                                   |
+|------------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Ingestion        | Integrating structured/unstructured data from SaaS, transactional systems, files                | Natively supports connections and schema awareness for accurate data ingestion              |
+| Processing       | Data transformation, pipeline orchestration, machine learning model training                    | Central layer where Cocoa excels at multi-step workflows, code generation, orchestration    |
+| Consumption      | Dashboards, analytics apps, ML applications                                                     | Automates downstream connectivity and insight delivery, including dashboard building       |
+
+Key differentiator: Unlike generic agents limited to SQL or script generation, Cocoa has **full pipeline fluency** across the entire data lifecycle.
+
+## 4. Core Technology and Differentiators
+
+At the heart of Cocoa is the **data-native agent harness**:
+
+- Maintains **live Snowflake connections for schema injection** and **samples real rows** to ground queries.
+- Integrates actively with your **RBAC and runtime environments** ensuring governance and security.
+- Leverages **100+ domain-specific Snowflake skills** (e.g., governance, machine learning, dynamic tables).
+- Supports multiple foundational **large language models (LLMs)** including OpenAI, Anthropic, and Snowflake’s own hosted models—**secured within Snowflake** (no data leakage or external model training risks).
+
+### Performance Comparison (Benchmark Overview)
+
+| Model          | Pass Rate (%) | Token Usage vs Cocoa (%) | Speed Advantage        |
+|----------------|---------------|-------------------------|-----------------------|
+| Cocoa          | **72.1**      | Baseline                | 1 hour faster on tasks |
+| OpenAI Codex   | 65            | ~51% more tokens        | Slower than Cocoa     |
+| Cloud Code     | 65            | ~51% more tokens        | Slower than Cocoa     |
+
+Cocoa’s **data-native approach and integrated model orchestration** enable both accuracy and efficiency beyond leading cloud AI coding tools.
+
+## 5. Product Evolution Timeline
+
+| Date          | Milestone                                          | Description                                                                                        |
+|---------------|---------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Nov 2025      | Release of Cocoa CLI                              | Terminal-based AI agent providing developer-centric, command-line workflow acceleration          |
+| Feb 2026      | Deep pipeline orchestration support (Airflow, DBT) | Enabled agentic workflows integrated into prominent data engineering tools                        |
+| Mar 2026      | Cocoa integration into Snowsight                  | No-installation, browser-based UI embedded within Snowflake’s native UI for broad accessibility   |
+| Apr 2026      | Third-party integrations & VS Code extension      | Extended Cocoa to support external frameworks (Glue, Postgres, Spark) and developer IDEs          |
+| Mid 2026      | Announcement of Cocoa Desktop & mobile extensions | Dedicated VS Code-based desktop IDE and upcoming mobile/Slackbot access complete platform spread  |
+
+Snowflake continues rapid iteration, committing to enhancing Cocoa’s capabilities with **regular weekly updates**.
+
+## 6. Cocoa Product Surfaces & Use Cases
+
+Snowflake delivers Cocoa across multiple environments to **meet users where they work**:
+
+- **Cocoa CLI:** Lightweight, fast terminal client favored by command-line users.
+- **Snowsight UI:** Browser-native experience requiring zero installation, directly embedded within Snowflake’s analytics console.
+- **VS Code Extension:** Integrated into developers’ primary code editor alongside Git repos.
+- **Plotcode Plugin:** Calls Cocoa as a sub-agent for data-intensive tasks without need to switch tools.
+- **Cocoa Desktop (GA Soon):** Full-fledged native IDE tailored for data professionals, supporting pipelines, dashboards, notebooks, DBT models, and visual data flow mapping.
+
+### Key Features of Cocoa Desktop
+
+- Hosts all Cocoa capabilities under one governance layer.
+- Facilitates agent automation allowing multi-step workflows to run unattended.
+- Ensures RBAC enforcement and security guardrails.
+- Integrates plugins and MCP connectors for extensibility.
+- Enables conversational, low-code, iterative development with instant deployment.
+
+## 7. Real-World Demonstrations
+
+- **Building dashboards and apps:** Users describe requirements in plain English; Cocoa handles data connections, schema mapping, live query previews, iteration, and deployment with zero boilerplate.
+- **DBT pipeline management:** Eliminates local environment setup by leveraging Snowflake-managed DBT mode with support for full lineage visualization, deep query compilation, and versioning—all integrated directly into Cocoa workflows.
+
+## 8. Programmatic Integration and Extensibility
+
+- Cocoa provides two main protocols:
+  - **MCP (Model Context Protocol):** For passing Snowflake context to models.
+  - **ACP (Agent Client Protocol):** For communicating with Cocoa from external applications.
+- **Cocoa Agent SDK:** A custom library enabling developers to embed Cocoa into their own applications, build automated pipelines, and implement custom agentic logic with full enterprise safeguards intact.
+
+## 9. Enterprise Adoption and Business Impact
+
+- Currently enabled with **7,100+ customers**.
+- Customer-reported benefits include:
+  - **5x increase in pull requests’ velocity** with hours-long tasks reduced to 2–3 hours.
+  - **~500 hours saved in the first 20 days**, valued at approximately $100,000.
+- Cocoa’s combination of **security, trust, and productivity** has elevated it beyond a “nice-to-have” into a **mission-critical business asset**.
+
+## 10. Key Q&A Highlights
+
+- **Differentiation from GitHub Copilot & Cloud Code:** Cocoa’s **deep integration with Snowflake metadata, RBAC, and governance** ensures no guesses and optimized production-grade outputs.
+- **Integration capabilities:** Cocoa CLI can interact with **external APIs and custom Python libraries** to support hybrid workflows.
+- **Cloud providers:** Snowflake is **cloud-agnostic**, operating on AWS, Azure, and GCP.
+- **Comparison with direct LLM APIs or frameworks:** Cocoa excels given its **data native grounding and contextual understanding** of Snowflake’s environment.
+- **Managing multi-step workflows:** Developers should utilize **memory files and modular skills** to maintain state across AI workflows.
+- **Handling structured and unstructured data:** Cocoa supports this via two main Snowflake services:
+  - **Cortex Analyst** for structured, semantic-layer insights.
+  - **Cortex Search Service** for unstructured documents like PDFs.
+- **Rate limits on trial accounts:** *Not specified*; best practice is efficient reuse of memory files and detailed prompt construction.
+
+## Conclusion
+
+Snowflake Cocoa CLI represents a **paradigm shift in AI-powered data engineering**, combining deep platform integration, enterprise-grade security, and multi-surface availability to deliver unprecedented developer productivity gains. With continuous innovation spanning CLI, UI, IDE, SDK, and cloud agents, Cocoa is positioned as the industry-leading, trustworthy data-native AI assistant for modern data teams.
+
+Users are encouraged to begin leveraging Cocoa immediately via Snowflake’s ecosystem, dramatically accelerating data engineering workflows while maintaining full control and governance.
+    

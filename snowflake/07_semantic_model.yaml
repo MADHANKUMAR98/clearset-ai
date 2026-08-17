@@ -1,0 +1,471 @@
+name: clearset_post_trade_semantic_model
+description: >
+  Semantic model for ClearSet AI Post-Trade Operations.
+  Enables natural-language analytics across settlement exceptions, trades, 
+  counterparty failure metrics, standing settlement instructions (SSI), 
+  SWIFT event logs, and historical resolution cases.
+
+tables:
+  # ---------------------------------------------------------------------------
+  # 1. EXCEPTIONS ENRICHED (Core operational triage view)
+  # ---------------------------------------------------------------------------
+  - name: exceptions_enriched
+    description: >
+      Post-trade settlement exceptions enriched with trade economics, security details, 
+      counterparty risk profiles, cutoff deadlines, and deterministic risk scores.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: V_EXCEPTIONS_ENRICHED
+
+    dimensions:
+      - name: exception_id
+        synonyms: ["exception identifier", "flag id", "alert id"]
+        description: Unique identifier for the settlement exception (e.g. EX-92831).
+        expr: EXCEPTION_ID
+        data_type: VARCHAR
+        unique: true
+        sample_values: ["EX-92831", "EX-81232", "EX-71292"]
+
+      - name: trade_id
+        synonyms: ["trade identifier", "trade ticket", "transaction id"]
+        description: Unique trade identifier associated with the exception (e.g. TRD-92831).
+        expr: TRADE_ID
+        data_type: VARCHAR
+        sample_values: ["TRD-92831", "TRD-81232", "TRD-71292"]
+
+      - name: severity
+        synonyms: ["severity level", "risk tier", "priority"]
+        description: Operational severity classification (CRITICAL, HIGH, MEDIUM, LOW).
+        expr: SEVERITY
+        data_type: VARCHAR
+        sample_values: ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+
+      - name: exception_status
+        synonyms: ["status", "resolution state", "lifecycle status"]
+        description: Current workflow status (OPEN, INVESTIGATING, PENDING_APPROVAL, RESOLVED).
+        expr: EXCEPTION_STATUS
+        data_type: VARCHAR
+        sample_values: ["OPEN", "INVESTIGATING", "PENDING_APPROVAL", "RESOLVED"]
+
+      - name: exception_type
+        synonyms: ["failure type", "category", "root exception category"]
+        description: Type of exception (Missing Instruction, Cash Discrepancy, Counterparty Fail Risk).
+        expr: EXCEPTION_TYPE
+        data_type: VARCHAR
+        sample_values: ["Missing Instruction", "Cash Discrepancy", "Counterparty Fail Risk"]
+
+      - name: ticker
+        synonyms: ["symbol", "stock symbol", "security ticker"]
+        description: Equity or security ticker symbol (e.g. AAPL, UST10Y, NVDA, MSFT, TSLA).
+        expr: TICKER
+        data_type: VARCHAR
+        sample_values: ["AAPL", "UST10Y", "NVDA", "MSFT", "TSLA"]
+
+      - name: security_name
+        synonyms: ["asset name", "instrument name"]
+        description: Full legal description of the security.
+        expr: SECURITY_NAME
+        data_type: VARCHAR
+        sample_values: ["Apple Inc. Common Stock", "US Treasury 4.25% Due 2034"]
+
+      - name: asset_class
+        synonyms: ["market segment", "instrument type"]
+        description: Asset class category (Equities, Fixed Income, Sovereign Debt).
+        expr: ASSET_CLASS
+        data_type: VARCHAR
+        sample_values: ["Equities", "Fixed Income"]
+
+      - name: depository
+        synonyms: ["clearing house", "CSD", "settlement venue"]
+        description: Central securities depository (DTC, Fedwire, Euroclear).
+        expr: DEPOSITORY
+        data_type: VARCHAR
+        sample_values: ["DTC", "Fedwire", "Euroclear"]
+
+      - name: counterparty_id
+        synonyms: ["cp id", "broker id", "clearing firm id"]
+        description: Unique counterparty ID (e.g. CP-192, CP-104).
+        expr: CP_ID
+        data_type: VARCHAR
+        sample_values: ["CP-192", "CP-104", "CP-088"]
+
+      - name: counterparty_name
+        synonyms: ["broker name", "counterparty", "clearing firm"]
+        description: Legal entity name of the counterparty broker/custodian.
+        expr: COUNTERPARTY_NAME
+        data_type: VARCHAR
+        sample_values: ["Apex Prime Clearing Ltd.", "Vanguard Global Markets", "Goldman Execution Services"]
+
+      - name: ssi_status
+        synonyms: ["instruction status", "standing settlement instruction status"]
+        description: SSI match status (MISSING, MISMATCHED, PENDING, MATCHED).
+        expr: SSI_STATUS
+        data_type: VARCHAR
+        sample_values: ["MISSING", "MISMATCHED", "PENDING", "MATCHED"]
+
+    time_dimensions:
+      - name: cutoff_time
+        synonyms: ["settlement cutoff", "deadline", "market cutoff"]
+        description: Official market settlement cutoff deadline timestamp.
+        expr: CUTOFF_TIME
+        data_type: TIMESTAMP_NTZ
+
+      - name: settlement_date
+        synonyms: ["value date", "intended settlement date"]
+        description: Contractual settlement date for same-day or T+1 delivery.
+        expr: SETTLEMENT_DATE
+        data_type: DATE
+
+    measures:
+      - name: risk_score
+        synonyms: ["deterministic risk score", "risk points", "point score"]
+        description: Explainable deterministic risk score from 0 to 100 calculated by ClearSet Risk Engine.
+        expr: RISK_SCORE
+        data_type: NUMBER
+        default_aggregation: max
+
+      - name: trade_value
+        synonyms: ["gross exposure", "notional value", "principal value", "exposure amount"]
+        description: Gross monetary value of the trade in USD.
+        expr: TRADE_VALUE
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: minutes_to_cutoff
+        synonyms: ["time remaining", "minutes remaining", "cutoff proximity"]
+        description: Minutes remaining until depository market cutoff deadline.
+        expr: MINUTES_TO_CUTOFF
+        data_type: NUMBER
+        default_aggregation: min
+
+      - name: exception_count
+        synonyms: ["number of exceptions", "total exceptions", "exception volume"]
+        description: Count of exception records.
+        expr: COUNT(EXCEPTION_ID)
+        data_type: NUMBER
+        default_aggregation: count
+
+  # ---------------------------------------------------------------------------
+  # 2. COUNTERPARTIES (Master failure track record)
+  # ---------------------------------------------------------------------------
+  - name: counterparties
+    description: >
+      Master directory of counterparties with 30-day failure records, credit ratings,
+      historical fail rates, and operational desk contacts.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: COUNTERPARTIES
+
+    dimensions:
+      - name: cp_id
+        synonyms: ["counterparty id", "broker code"]
+        description: Unique counterparty ID (e.g. CP-192).
+        expr: CP_ID
+        data_type: VARCHAR
+        unique: true
+        sample_values: ["CP-192", "CP-104", "CP-088", "CP-210", "CP-115"]
+
+      - name: name
+        synonyms: ["counterparty name", "firm name", "broker name"]
+        description: Full legal entity name of the trading firm.
+        expr: NAME
+        data_type: VARCHAR
+        sample_values: ["Apex Prime Clearing Ltd.", "Vanguard Global Markets", "Goldman Execution Services"]
+
+      - name: bic
+        synonyms: ["swift bic", "bank identifier code"]
+        description: SWIFT Bank Identifier Code (e.g. APEXUS33XXX).
+        expr: BIC
+        data_type: VARCHAR
+        sample_values: ["APEXUS33XXX", "VANGUS33XXX", "GSEXUS33XXX"]
+
+      - name: credit_rating
+        synonyms: ["rating", "credit grade"]
+        description: Institutional credit rating (e.g. A, AAA, AA+).
+        expr: CREDIT_RATING
+        data_type: VARCHAR
+        sample_values: ["A", "AAA", "AA+", "AA"]
+
+      - name: primary_desk_contact
+        synonyms: ["operations contact", "desk lead", "escalation contact"]
+        description: Named operational desk contact for phone/email escalations.
+        expr: PRIMARY_DESK_CONTACT
+        data_type: VARCHAR
+        sample_values: ["Marcus Vance (Equities Clearing Desk NY)", "Sarah Jenkins (Fixed Income Operations)"]
+
+    measures:
+      - name: prior_failures_30d
+        synonyms: ["past failures", "30-day fails", "fail count", "settlement failure count"]
+        description: Total number of settlement failures incurred by the counterparty in the past 30 days.
+        expr: PRIOR_FAILURES_30D
+        data_type: NUMBER
+        default_aggregation: sum
+
+      - name: historical_fail_rate
+        synonyms: ["fail rate", "failure percentage", "historical fail percentage"]
+        description: Percentage failure rate across all trade volume in past 30 days (e.g. 8.4%).
+        expr: HISTORICAL_FAIL_RATE
+        data_type: NUMBER
+        default_aggregation: avg
+
+      - name: avg_resolution_hours
+        synonyms: ["average resolution time", "resolution delay", "avg delay"]
+        description: Average hours required to resolve settlement exceptions with this counterparty.
+        expr: AVG_RESOLUTION_HOURS
+        data_type: NUMBER
+        default_aggregation: avg
+
+  # ---------------------------------------------------------------------------
+  # 3. SETTLEMENT EVENTS (SWIFT message & telemetry audit trail)
+  # ---------------------------------------------------------------------------
+  - name: settlement_events
+    description: >
+      Chronological audit trail of depository and messaging events (SWIFT MT541, MT548, MT599, ISO 20022).
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: V_SETTLEMENT_EVENTS
+
+    dimensions:
+      - name: event_id
+        synonyms: ["audit event id", "message id"]
+        description: Unique event identifier (e.g. EVT-101).
+        expr: EVENT_ID
+        data_type: VARCHAR
+        unique: true
+        sample_values: ["EVT-101", "EVT-102", "EVT-103", "EVT-104", "EVT-105"]
+
+      - name: trade_id
+        synonyms: ["trade ticket", "trade id"]
+        description: Trade ID linked to the event.
+        expr: TRADE_ID
+        data_type: VARCHAR
+        sample_values: ["TRD-92831"]
+
+      - name: message_type
+        synonyms: ["swift message", "event type", "protocol message"]
+        description: SWIFT or internal message format (SWIFT MT541, SWIFT MT548, INTERNAL_ALERT).
+        expr: MESSAGE_TYPE
+        data_type: VARCHAR
+        sample_values: ["SWIFT MT541", "SWIFT MT548", "INTERNAL_ALERT"]
+
+      - name: event_status
+        synonyms: ["status", "depository state"]
+        description: Event milestone state (TRADE_BOOKED, SSI_NOT_FOUND, CRITICAL_RISK_FLAGGED).
+        expr: EVENT_STATUS
+        data_type: VARCHAR
+        sample_values: ["TRADE_BOOKED", "SSI_NOT_FOUND", "CUTOFF_WARNING_T120", "CRITICAL_RISK_FLAGGED"]
+
+      - name: description
+        synonyms: ["event text", "log message", "audit text"]
+        description: Detailed message payload text describing the operational status change.
+        expr: DESCRIPTION
+        data_type: VARCHAR
+
+      - name: source
+        synonyms: ["emitter", "originating system"]
+        description: Source system (MATCHING_ENGINE, DEPOSITORY, CLEARSET_AGENT).
+        expr: SOURCE
+        data_type: VARCHAR
+        sample_values: ["MATCHING_ENGINE", "DEPOSITORY", "CLEARSET_AGENT"]
+
+    time_dimensions:
+      - name: event_timestamp
+        synonyms: ["timestamp", "time of event", "logged at"]
+        description: Exact timestamp when event was received or emitted.
+        expr: EVENT_TIMESTAMP
+        data_type: TIMESTAMP_NTZ
+
+  # ---------------------------------------------------------------------------
+  # 4. HISTORICAL CASES (Institutional memory & playbooks)
+  # ---------------------------------------------------------------------------
+  - name: historical_cases
+    description: >
+      Historical investigation cases, root causes, applied SOP procedures, 
+      resolution strategies, and regulatory penalties avoided.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: V_HISTORICAL_CASES
+
+    dimensions:
+      - name: historical_case_id
+        synonyms: ["case id", "case number", "investigation id"]
+        description: Unique historical case ID (e.g. INV-2026-00412).
+        expr: HISTORICAL_CASE_ID
+        data_type: VARCHAR
+        unique: true
+        sample_values: ["INV-2026-00412", "INV-2026-00389", "INV-2026-00311"]
+
+      - name: counterparty_id
+        synonyms: ["cp id", "counterparty"]
+        description: Counterparty ID associated with the historical case.
+        expr: CP_ID
+        data_type: VARCHAR
+        sample_values: ["CP-192"]
+
+      - name: counterparty_name
+        synonyms: ["counterparty", "firm name"]
+        description: Counterparty name.
+        expr: COUNTERPARTY_NAME
+        data_type: VARCHAR
+        sample_values: ["Apex Prime Clearing Ltd."]
+
+      - name: root_cause
+        synonyms: ["failure cause", "issue summary"]
+        description: Identified primary operational root cause in the historical case.
+        expr: ROOT_CAUSE
+        data_type: VARCHAR
+
+      - name: applied_procedure
+        synonyms: ["sop section", "applied policy", "standard procedure"]
+        description: Operational SOP rule applied to resolve the historical case.
+        expr: APPLIED_PROCEDURE
+        data_type: VARCHAR
+        sample_values: ["Settlement Exception SOP §3.2 (Expedited SSI Repair)", "Settlement Exception SOP §4.1"]
+
+      - name: resolution_strategy
+        synonyms: ["action taken", "resolution playbook", "remedy"]
+        description: Resolution actions executed by operations desk.
+        expr: RESOLUTION_STRATEGY
+        data_type: VARCHAR
+
+      - name: outcome
+        synonyms: ["resolution outcome", "final result"]
+        description: Outcome of case (RESOLVED_SUCCESS, FAILED_SETTLEMENT, ESCALATED).
+        expr: OUTCOME
+        data_type: VARCHAR
+        sample_values: ["RESOLVED_SUCCESS", "FAILED_SETTLEMENT"]
+
+    measures:
+      - name: time_to_resolve_hours
+        synonyms: ["hours to resolve", "turnaround time"]
+        description: Hours spent from detection to resolution.
+        expr: TIME_TO_RESOLVE_HOURS
+        data_type: NUMBER
+        default_aggregation: avg
+
+      - name: csdr_penalty_avoided
+        synonyms: ["penalty avoided", "cost savings", "regulatory fines saved"]
+        description: Amount of CSDR regulatory cash penalties avoided in USD.
+        expr: CSDR_PENALTY_AVOIDED
+        data_type: NUMBER
+        default_aggregation: sum
+
+# -----------------------------------------------------------------------------
+# VERIFIED QUERIES (Ground-Truth Few-Shot Queries for Cortex Analyst)
+# -----------------------------------------------------------------------------
+verified_queries:
+  - name: critical_exceptions_approaching_cutoff
+    question: "Show me critical settlement exceptions approaching cutoff."
+    sql: >
+      SELECT 
+          TRADE_ID, 
+          TICKER, 
+          COUNTERPARTY_NAME, 
+          TRADE_VALUE, 
+          MINUTES_TO_CUTOFF, 
+          RISK_SCORE 
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
+      WHERE SEVERITY = 'CRITICAL' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING')
+      ORDER BY RISK_SCORE DESC, MINUTES_TO_CUTOFF ASC;
+
+  - name: why_trd_92831_critical
+    question: "Why is TRD-92831 critical?"
+    sql: >
+      SELECT 
+          TRADE_ID,
+          TICKER,
+          COUNTERPARTY_NAME,
+          TRADE_VALUE,
+          SSI_STATUS,
+          MINUTES_TO_CUTOFF,
+          PRIOR_FAILURES_30D,
+          HISTORICAL_FAIL_RATE,
+          RISK_SCORE,
+          SEVERITY
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
+      WHERE TRADE_ID = 'TRD-92831';
+
+  - name: settlement_history_trd_92831
+    question: "Show me the settlement history for TRD-92831."
+    sql: >
+      SELECT 
+          EVENT_ID,
+          EVENT_TIMESTAMP,
+          MESSAGE_TYPE,
+          EVENT_STATUS,
+          DESCRIPTION,
+          SOURCE
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_SETTLEMENT_EVENTS
+      WHERE TRADE_ID = 'TRD-92831'
+      ORDER BY EVENT_TIMESTAMP ASC;
+
+  - name: failures_for_cp_192
+    question: "How many failures has CP-192 had in the last 30 days?"
+    sql: >
+      SELECT 
+          CP_ID,
+          NAME,
+          PRIOR_FAILURES_30D,
+          HISTORICAL_FAIL_RATE,
+          AVG_RESOLUTION_HOURS
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.COUNTERPARTIES
+      WHERE CP_ID = 'CP-192';
+
+  - name: total_exposure_critical_exceptions
+    question: "What is the total exposure of open critical settlement exceptions?"
+    sql: >
+      SELECT 
+          COUNT(EXCEPTION_ID) AS TOTAL_CRITICAL_EXCEPTIONS,
+          SUM(TRADE_VALUE) AS TOTAL_GROSS_EXPOSURE_USD
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
+      WHERE SEVERITY = 'CRITICAL' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING');
+
+  - name: similar_cases_trd_92831
+    question: "Show me historical cases similar to TRD-92831."
+    sql: >
+      SELECT 
+          HISTORICAL_CASE_ID,
+          ORIGINAL_TRADE_ID,
+          CASE_DATE,
+          COUNTERPARTY_NAME,
+          ROOT_CAUSE,
+          APPLIED_PROCEDURE,
+          RESOLUTION_STRATEGY,
+          TIME_TO_RESOLVE_HOURS,
+          OUTCOME,
+          CSDR_PENALTY_AVOIDED
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_HISTORICAL_CASES
+      WHERE CP_ID = 'CP-192'
+      ORDER BY CASE_DATE DESC;
+
+  - name: counterparties_highest_failure_rates
+    question: "Which counterparties have the highest settlement failure rates?"
+    sql: >
+      SELECT 
+          CP_ID,
+          NAME,
+          PRIOR_FAILURES_30D,
+          HISTORICAL_FAIL_RATE,
+          AVG_RESOLUTION_HOURS
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.COUNTERPARTIES
+      ORDER BY HISTORICAL_FAIL_RATE DESC, PRIOR_FAILURES_30D DESC;
+
+  - name: exceptions_missing_settlement_instructions
+    question: "Which exceptions have missing settlement instructions?"
+    sql: >
+      SELECT 
+          EXCEPTION_ID,
+          TRADE_ID,
+          TICKER,
+          COUNTERPARTY_NAME,
+          TRADE_VALUE,
+          SEVERITY,
+          RISK_SCORE,
+          MINUTES_TO_CUTOFF
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
+      WHERE SSI_STATUS = 'MISSING' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING')
+      ORDER BY RISK_SCORE DESC;

@@ -1,0 +1,237 @@
+00:00:07
+ [music] [music] [music] [music] [music] [music] [music] [music] [music] [music] [music] [music] >> Hello. Hi everyone. Hope you all are doing well and a very warm welcome to the Snowflake Cocoa CLI the 2026 Cocoa Starter Workshop. My name is Chevy and I will be your host for the day. So, we are excited to have all of you with us today, whether you are joining as a developer, data engineer, or AI enthusiast. This workshop is your starting point for the Hackathon journey. So, over the next few weeks, you will
+
+00:02:17
+ build an AI initiative applications, solve real-world challenges, and compete for a prize pool of $10,000. More importantly, you will get the opportunity to learn, build, and showcase your skill. So, let's get started. So, before we begin, here's a quick overview of the program. The Snowflake Coca-Cola CLI Hackathon is a building focused AI program where you will use Snowflake Coca-Cola CLI to create innovative AI and data applications. You will work on real-world problem statements, build a working solution,
+
+00:02:53
+ and present your ideas to the industry experts. Whether you are participating individually or as a team, this is your opportunity to challenge yourself, gain recognition, and build something impactful. So, now, without taking much of your time, it's my pleasure to introduce our today's speaker. So, joining us today, we have Abhay Singh. He's working as a senior data engineer at Snowflake, specializing in creating innovative snow and snow use cases. With a background in fintech and HR tech, he offers a unique
+
+00:03:30
+ perspective on data solutions. Outside of work, Abhay is passionate about traveling and photography. So, let's welcome him. Hi, Abhay. >> Hello everyone. How are you? >> All good. How are you, Abhay? >> Uh I'm also good. So, >> Yes. >> So, the stage is yours. It's mine. Yeah, okay. So, I'll start. Uh so, hello everyone. Welcome to today's webinar. Uh my name is Abhay Singh. I'm currently working as a staff data engineer in the data platform team at Snowflake.
+
+00:04:02
+ And today I'm really excited to showcase on how Snowflake Koko actually can help you to go from having like your raw ideas into like production grade applications or pipelines, like in entirely transforming your data developer journey across any workflow, across any track. So, uh let's move on. Let's start with the session. So, basically, I'll start with like what is becoming a mainstream today. So, agentic coding has kind of officially has crossed a certain threshold, and it is becoming like very
+
+00:04:34
+ mainstream now. The entire category, it has like sh- shifted away from basic code auto complete to autonomous agentic delegations, like where AI agents actually read your entire repositories, will edit your files, will execute your test cases, open requests, and it is becoming like I am just a person in the loop. I'm not the main developer anymore for me, per se. So, the life of a data engineer, data analyst, or data scientist has completely changed. And like if I just want to talk about some industry numbers, so almost 85% of
+
+00:05:09
+ the pro developers currently are using or planning on using the AI use case. And almost 70% of them are actually looking at productivity gains. What used to take months to deliver, now it's being done in sometimes hours or days. So, that is like huge product productivity gains that we are actually seeing here at Snowflake. But like for example, a lot of us, we are actually using AI, right? And we have a lot of concerns about how accurate the agents are today. Like, if I'm getting a response, can I trust that
+
+00:05:46
+ response? Is it accurate? So, basically that still becomes a concern. So, just to summarize like adoption is no longer a blocker for us. Having the correct context, having the correct and robust controls on top of it, having that enterprise level trust are the core challenges that we are facing now. So, basically that is what we are currently looking at Snowflake and to solve. So, I move ahead. So, basically if I want to talk about what currently data teams require and if their needs are not being
+
+00:06:23
+ met, so basically uh lot of data engineering and data science teams, they're using the general purpose AI. But these general purpose AIs are kind of falling short because data teams, they operate under a lot of critical constraints like we need to have our back in place. We need to have like proper governance in like our general purpose agents like for example, Gemini charge up to they are not actually able to uh break that problem for us. Like they are not able to solve because we require built-in our back. We
+
+00:06:58
+ need governance to be in place. The operational context for example, as I am a Snowflake developer, my operational context uh expands across like multiple Snowflake environments, schemas, even in live data systems and I cannot be confined in a local repository, right? So, the need of the hour is basically a specialized export which can actually help me build data pipelines, create those transformations, build those data agents rather than just doing normal like scripting, ask for me or code auto
+
+00:07:34
+ completions. So, that is where Snowflake saw the industry gap and that is where we wanted to fix it. So, basically uh that is where Snowflake brought in Snowflake Cortex. So, it's an AI coding agent for data. What do I mean by that is uh basically, if I'm a data engineer, I want to move from raw ideas to I want to deploy it at acceptance suites. So, this is what Cortex is actually enabling me. First of all, since it's a Snowflake product, it's built deep inside Snowflake. So, I have all the R back, all the
+
+00:08:10
+ governance, great governance, everything wherever I am actually building using Cortex. It is actually helping me to accelerate my end-to-end data pipelines, like complex data engineering tasks, machine learning tasks, even creating dashboards or agent building tasks into just simple conversational interactions. And the main thing is it has that deep awareness of our enterprise data. It has a knowledge of our governance, our our operational semantics entirely uh across our entire stack. So, that is where Snowflake Cortex sits
+
+00:08:47
+ today as like the agent for data. So, I I'll just quickly tell about how we are actually positioning Cortex. So, if you're a data engineer or a uh data professional, you might have seen like several layers of your data pipeline, like end-to-end data pipelines. So, one of the things that makes uh Cortex great and different is it is not just confined to a single layer of your stack. It accelerates your work across all the layers. And because as a data engineer, I will not sit in one place, right? I
+
+00:09:25
+ will have to move across different applications, uh different tools sometimes. So, I should not be confined to one person, and that is where Cortex is actually helping me. So, I'll just take you a like brief uh walk-through. So, if you see in the middle we have the processing layer. This is where like most of the heavy lifting actually is done like So, basically if you want to ship data applications, if you want to do machine learning on your data, if you want to build or manage AI agents on top
+
+00:09:57
+ of your data, so that is where the processing layer exists and Coco actually can help us to accelerate the tasks. But, for example, the processing layer is not existing in isolation, right? So, on one side you have ingestion, on the other side you have consumption. So, basically Coco actually plugs into those worlds as well. So, whether you want to pull data from your SaaS applications, your transactional databases, whether you want to fetch in the structured or unstructured data, Coco has that native awareness on how you can
+
+00:10:29
+ bring that data inside of Snowflake. And on the consumption layer of it, uh data SaaS applications, your machine learning, your analytics dashboards, Coco actually can help you establish those downstream connections, can help you build those dashboards on top of it. So, basically it's kind of an end-to-end data pipeline altogether. You If you have Coco, you don't have to actually think whether how will I work from one layer to other layer. And the key point here is like where most of the
+
+00:11:03
+ agents currently either they are actually writing SQL or actually enhancing your script, Coco is an agent then actually understands your complete data journey from source to insight. The end-to-end fluency is actually what makes it powerful in terms of doing real-world production-level pipeline outcomes. So, I I'll quickly move to like what makes Coco great. So, basically at the heart of our Coco is the data native agent harness, and that is what actually really sets it apart from your general purpose coding
+
+00:11:42
+ agents. Uh you can think of harness as the brain of this whole operation. It has like our live Snowflake connection, which means Coco is is not only just building pipelines for you, it's also not making any guesses. It knows what is happening in real time. And here is how it works. So, basically, whenever you give a natural language uh question, so we have something called as like live schema injection. So, basically, Coco will pull the exact table schemas, sample a set of your rows from those tables. It has your active
+
+00:12:17
+ role, it has your active warehouse, your runtimes, and everything. So, it is already grounded in reality. And on top of it, it's not only a general context-like agent, so it is actually an agent that is laser-focused for data operations and has a deep understanding of Snowflake knowledge as a product. It understands on on how our back works. It makes sure the governance is enforced. It looks at how compute is being provisioned. And basically, because of those things, like because because it is grounded inside
+
+00:12:56
+ uh it has all that knowledge of your Snowflake uh deep knowledge of Snowflake, the output that Coco is generating is actually like pretty trustful. And on top of it, Coco draws like inspiration from 100-plus domain-specific skills, which uh Snowflake has already built, which cover covers everything, be it your uh data governance, machine learning, your dynamic tables for cost and intelligence. And these are not just the skills that are just made for namesake. These are actually skills which Snowflake has built in terms of like
+
+00:13:32
+ what should be the Snowflake playbook to actually do it on Snowflake. And it actually also helps you to connect with your MCP servers, your sub agents. It helps you to execute your SQLs. And these are the kind of uh tech stack that a data engineer actually requires in terms of it his or her day-to-day activities. And everything, if you can see at the bottom, sits on top of your Snowflake platform. So, you have your enterprise grade governance, our back is in place. So, you don't have to think from a
+
+00:14:11
+ perspective of actually deploying anything. It's already there. It is being managed by Snowflake. You don't have to think about security because that is also managed by Snowflake. And the best part is you get access to all the industry leading models, be it from OpenAI, Anthropic, Snowflake own models inside Snowflake. So, these models are actually hosted inside of Snowflake. So, your data, your queries, your context it never actually uh moves out of Snowflake. So, you can be at peace of mind that
+
+00:14:46
+ whatever you're doing inside Snowflake, it cannot be used to train models outside. So, that is what is making Cocoa kind of a very data native agent and it performs like specifically for Snowflake based task rather than just giving like general purpose outputs. Uh Okay. So, since Snowflake uh is actually building Cocoa, we went ahead and we did some of uh the comparison between our Cocoa and industry leading models on 80 benchmarks. And what we actually saw was Coco achieved a state-of-the-art pass
+
+00:15:31
+ rate of 72.1%, which significantly uh significantly outperformed the Cloud Code Codex and uh sorry, OpenAI Codex and Cloud Code. And both of them tied at 65%. Coco also used 51% less token as compared to these models. And the tasks, like the data engineering uh task or analytics problems that were given to Coco, it was able to solve 1 hour faster than these other models. And why it was able to actually outperform is because Coco is built in Snowflake. It has the data native approach. It has that uh targeted
+
+00:16:09
+ exploration models built inside it. That is allowing Coco to actually uh deliver better and faster. So, uh I'll quickly take you through the journey of what Snowflake has been doing for some time. So, Coco is was just an idea back in November. Snowflake came with uh like Coco CLI. So, that was the first step, like getting an agentic experience in the hands of developers in their terminals. From there, things kind of accelerated quickly. In February of 2026, uh we came with the or uh deep pipeline
+
+00:16:53
+ orchestration, adding first-class support for Airflow and DBT. Uh this actually unlocked data engineering teams who live in those tools every day to have like more control over how to build agentic workflows. In March, Coco became generally available in Snowsight. That means like the first UI which every Snowflake user goes through to. Snowflake Cocoa actually sat there. It was actually helping users to answer uh their queries, optimize their queries, fix their queries. So, and the best part was nothing like zero
+
+00:17:33
+ actually installation was needed. April was another wave. We expanded Cocoa to support third-party uh external frameworks such as Glue, Postgres, and Spark support. Uh we also brought in like VS Code extension for Cocoa. There were plugins for Cocoa that were generated like which are in public preview, which users can actually go and download for their VS Code where they actually work. And a lot of frontier models like Opus 4.7, uh GPT-5.4, like the latest industry-leading models. Uh these were also kind of
+
+00:18:11
+ uh released by Snowflake. The takeaway that I see here is like Snowflake as a brand is not slowing down. It is doubling down down on AI like every day. Uh it is making Cocoa more capable, more intelligent, and more valuable. So, I'll just tell like how much value Cocoa brings. So, let's just talk few numbers, right? So, currently Cocoa is enabled across 7,100 plus of our customers since it went GA in February of 2025. You can see like leading brands who actually rely on AI to actually give best of the
+
+00:18:53
+ insights, and we have customer testimonials as well. If you see like the first testimonials, using Cocoa, the data engineers were able to actually raise five times more PRs than what used to take days, now they were doing in two to three hours. Another testimonial is like 500 hours of saving, roughly 100,000 in value, within first 20 days of adoption. And these are like not small numbers. These are the numbers that actually is making a lot of CFOs pay attention. Goku at this point is not just a
+
+00:19:27
+ nice-to-have productivity tool. It is delivering the enterprise-grade returns from day one. It is consistently helping data teams to kind of accelerate what they are doing like they they should be able to build faster and more accurately. And that it is not your general-purpose agent. It is the agent for your data engineering. So let's move into the latest innovations that we have in Snowflake Goku. So basically we announced a lot of things in Summit 2026. The Snowflake plan of advancing Goku
+
+00:20:13
+ is across two major strategic themes. Theme one focuses on expanding users to meet where they exactly are, where they work, including native desktop environments or mobile channels. Theme two is basically opening up that programmatic extension layer allowing third-party application developers to build tools on top of Goku as a core platform. So what I mean by that is uh I want to give you a mental picture of everything we are discussing today. So first of all, if I'm a developer, right? I'm a data engineer. If I'm
+
+00:20:52
+ accessing Goku through my browser, I should have Goku there. If I'm in my terminal, Goku should be there. If I'm in my ID, Goku should be there as well. Even if I open my Slack bot, Goku should be there. Uh if I'm not on my desktop and I want to do something Coco should be on my mobile as well. So this is where Snowflake is trying to solve all those problems by making Coco show up everywhere the developer wants Coco to be. The second thing which we talked about like giving programmatic control like
+
+00:21:25
+ opening up the platform of Coco so people and developers can actually utilize Coco to extend Coco orchestrate call it their way like how every way they seem it to be fit. Like whether they are embedding it in their own pipelines in their own applications or they want to create automations they should be able to utilize Coco to actually build those things. So we'll sorry we'll we'll first talk about Coco like like I just touched base like everything uh should be there where you exist. Like
+
+00:22:05
+ Coco should be in all the environments a data professional lives in every day. So I'll start with that like let's dig in. So basically I will move in I will go like where Coco is available today. So today if you can see Coco is in uh like these four core platforms or surfaces and each one is designed to meet developers where they are currently. So the first one is like Coco CLI it is the native binary which you can uh install and spin up in your terminal. It lives in your command line. It is a
+
+00:22:41
+ great entry point for developers who use command line a lot. It is like very lightweight fast. It is always available. Second you have Coco and Snowsight. So this is one of my favorites to be honest like this is where majority of the users go when they are working with data. When I have Coco in my web experience first of all the best thing is I don't need to install it. It's like zero installation required. It just comes up by just a click of a button and it starts helping me to solve my SQL problems directly in
+
+00:23:16
+ my Snowsight workspace or my I can take Coco's help in Snowsight to uh play around with my notebooks as well. Third is VS Code. So, a lot of the developers because our repos mainly they exist in Git and we bring it in our VS Code and VS Code is like widely loved as an ID. So, we have a Coco extension for VS Code as well. So, basically, it's alongside all your code that is already written and it can help you to actually accelerate writing your code bases building those pipelines. And last, which is like uh industry
+
+00:23:55
+ favorite right now, is Coco plugin for Plotcode. So, why this is interesting is because uh Coco kind of is already in your Plotcode and code acts as a plugin. It allows those external agents to call Coco as a sub-agent to do any of the data intensive tasks. And if you're already on Plotcode or Code X, we don't want you to switch tools. You just hand over those tasks to Coco there. And the theme across all the four surfaces is like same. We are not asking developers to change how they work. We are bringing Coco to
+
+00:24:35
+ the environments they are working in. And we are expanding our uh footprint like more quickly than ever. So, there comes like our one of the biggest environments announcements in summit, which is we are introducing Coco desktop and it is uh going general availability soon. So, Coco desktop is a native uh VS Code based application and it is built just for data professional. Think of a standalone IDE which has an only purpose to give like a single governance base layer for everything you do across Snowflake.
+
+00:25:15
+ Whatever your task, Cocoa Desktop is designed for it. You can build your data pipelines end-to-end. You can build your dashboards. You can interact with your uh notebooks. You can iteratively create DBT models. You can visually map your data flows. Whatever your data uh day looks like across Snowflake stack, this is the home for it. Like Cocoa Desktop should be able to do everything. And one of the things that I personally love about Cocoa Desktop is it's it's designed. For example, it comes with out-of-the-box like my
+
+00:25:47
+ favorite skills. I should I'm easily able to connect with my MCP connectors. It has all those plugins. So, it's not a walled garden. It's just right fits in ecosystem wherever uh I'm building and whatever I want to build, it it fits in there. And there's one capability to highlight which is a key feature which was always an issue is first of all Rback. It has that knowledge of that Rback that Snowflake has in place. Like it will not skip those guardrails. Also, one of the amazing features that I
+
+00:26:19
+ like about Cocoa is the ability to automate an agent for my workflows. So, basically, what I do is basically I hand off a task to Cocoa. I go for a break. Cocoa in the back end just kind of does that multi-step workflows which our data pipelines, whichever I'm trying to build. And even if I'm back, my work is being done. And when I come back, I can just see like I can just review the results. So, even on the break, technically, I'm working. So, it unlocks that potential like it gives data engineers that flexibility to
+
+00:26:53
+ even be working on multiple things at a time. And they should just be present only for review. So, Coco desktop can be said as the most complete expression of Coco we have built. And obviously it's going to be GA soon. So, I'll quickly go to a demo of Coco, like how you can actually use it to build an app. So, basically it's very simple like uh you can just describe in plain text what you want and that is all like Coco takes care of it from there. It hooks up your database connections, it
+
+00:27:30
+ gets that data, it gives you a live preview of what you're trying to actually build. You can keep on having your conversations with Coco. You can have like those iterative way of working. You can pick the design, refine the logic until it feels right for you. And it's all like I'm just talking to Coco in plain simple English. I'm not just actually writing code. And whenever you are happy with your design, with a click of button you can just deploy it in Snowsight directly. Uh you don't have to think of other
+
+00:28:02
+ things like how would I do it, how would I move it. Coco takes care of everything. So, no boilerplate code is not needed. No configuration headache is there. No deployment scripts required. Just the idea to a production in minutes. So, as you can see in this demo, like we could build dashboards like really easily without actually having to have the knowledge of her data. Coco has that knowledge. Coco has is already fine-grained in our Snowflake instances. It has that metadata that is required. It knows where my data
+
+00:28:36
+ resides. It knows uh like how my semantic layer is built. So, Snowflake there actually helps uh Snowflake Coco actually helps me to go from like zero to 100 like very quickly. So, sorry. Uh So, this like it's very easy to deploy an application from a Coco perspective now. So, I move to I want to move to another example here. So, I have another recorded uh video for you. So, basically it is like how I can utilize my DBT pipelines like how how I can build and manage my DBT pipelines. So, if anyone has worked with DBT,
+
+00:29:26
+ we have a very common pain point. Anyone who has ever tried a local DBT environment, first of all, the issue is always of the versioning, having the right version, having the connection profiles, having those environment connections managed, authentication. So, that is a lot of friction just to deploy a pipeline, right? So, Coco entirely eliminates that. So, even if you don't have a DBT local instance connected or installed, it automatically switch to Snowflake managed mode. What it means is you
+
+00:29:57
+ don't need to have DBT installed locally. Uh you don't need to manage profiles and anything. Coco handles everything for you. And all you can And it's it's not like just like a strip down experience. You get a full package. You get DBT Fusion full support, deep query compiling. You get your data lineage right in there. So, as you can see like I can visualize my data lineage as well. And the point is very simple like we are removing all the barriers that are there. As a developer, I should not
+
+00:30:27
+ be spending my first hour just to do configuration. I should start with building my DBT models from the start from the first minute. So, those were the two demos that I had. Uh I'll quickly go through some of the updates that I have for Coco and Snowsight. So, we already know Coco now lives in Snowsight. So, the best thing is now Coco has support for custom skills, uh, including a SQL author. You can just click on a query and you can just click on fix it. It makes experience like really great. You can do
+
+00:31:03
+ uh, debugging, you can optimize your queries, everything. And second is having that MCP connectors now live in Snowsight itself. So, basically, I can talk to my Google Workspaces, my Jira, my Confluence, my Slack messages, anything directly from Snowsight, and everything is also falls under Snowflake governance umbrella. You can already trust it. You don't have to think about security postures. Another thing is, uh, like we have auto navigation to pages in Coco. So, Coco can navigate you to the right Snowsight page based on
+
+00:31:36
+ your prompt. We also have snap and ask. You can just, uh, crop our dashboard chart straight from a dashboard, and you can give it to Coco to give visual context uh, for whatever for whatever question you have. So, bottom line, Snowsight is also getting like very powerful. It is like way more connected now and more context-aware with like whatever releases that are coming. Uh, another thing that, uh, I want to point out about Snowflake Coco, which is great, is uh, ability to share skills and plugins.
+
+00:32:11
+ So, basically, right now, a lot of customers had that issue, like if their team is actually building a custom skill, how can they share it with other members inside the organization safely? It should not be a wild west scenario, like where everything is like jumbled. Nothing is managed. So, to answer that, uh, it's it's currently in private preview, skills and plugin sharing. And the idea here is like kind of uh pretty simple. You take individual developer productivity tools and let it compound
+
+00:32:46
+ into like your organization. Anyone should be able to use it. And admin should be able to approve the skills. All skills should actually be governed by Snowflake's native uh R back. In like intelligent discovery is a great feature where as a user if I want to build something, I may not know exists or not, right? So, Cocoa automatically scans, installs, and runs all the right skills that are required in the background. And the user does not uh need to know if it exists. So, one team's expertise can be utilized by
+
+00:33:21
+ everyone inside the organization. Also, one of the best things about this is everything every skill is getting like uh full security scan in the background before it can be actually used or like without giving up any control like it should be safe, right? If somebody all my skills or my packages should be constantly be checked for any security vulnerabilities or loopholes that are there. So, Cocoa takes care of that as well. So, next uh thing that I want to talk about is cloud agents. So, basically
+
+00:34:04
+ like with whoever has worked with Cocoa CLI knows Cocoa CLI was more capable than Cocoa and Snowsight. Because CLI had that access to shell, it had that access to local compute. It had access to your local repos, right? And Snowsight workspaces did not have any of that. And to bridge that gap, Snowflake brought in like cloud agents. So, now every Cocoa session in Snowsight spins its own isolated container. This means you can get the full power of a CLI running inside the cloud and the impact is huge. Anything you running
+
+00:34:41
+ locally now you can also run inside Snowsight. So, uh first of all security is clean. You don't require any installs. Everything gets spin in the back end automatically. And the best thing is if I had a job running on my Coco CLI which was a long running, my laptop should have been powered on during the whole process. But now the best thing is I can run a long running job and I can close my laptop and go because everything is already running in cloud. So, that kind of capability inside Snowsight is like just literally
+
+00:35:15
+ amazing. Uh moving on to the next part which is like we already told it. We want to Coco to be wherever our data engineer is. So, all the stateful APIs that were actually powering the cloud agents are also being utilized to bring Coco everywhere. So, we are bringing Coco to your mobile. We are bringing Coco to your team's Slack or Slackbot. It is in public preview and uh Sorry, uh to clarify it's coming to public preview soon. And the best part is like if I have a long running agent job on my system
+
+00:35:57
+ and it stumbles upon an HQ and if it wants a human to be in loop, it can just send me a notification on my phone and just with a tap of notification, I can unblock my agent to actually proceed. So, that is at the level which Snowflake is currently operating. It actually wants users to have access to Coco wherever like they want tasks to be finished as soon as possible with least human interaction. Like as a human I should only be reviewing what my agent is doing rather than actually sitting and
+
+00:36:34
+ interacting with my agent as a prompt engineer. So, we we talked about like where the Cocoa should live, right? So, let's switch gears here. We'll talk about the second major category which is like having that programmatic interfaces which lets you build on top of Cocoa as a platform. So, I'll start with that. So, basically today there are only two ways you can interact with Cocoa. With Cocoa is basically either you can use model context protocols that is MCP service to pass your context to external
+
+00:37:14
+ models or you can leverage agent client protocols which is ACP to support communication with Cocoa from external applications. So, this is where we try to solve that problem and we brought in Cocoa agent SDK. So, this is a massive lift to be honest. This allows you to actually embed Cocoa Cocoa directly into your applications, directly into your reasoning loops, into your custom code bases, in your product architectures. So, you know, whatever you can think of rather than just treating Cocoa as an outsider where you
+
+00:37:49
+ have to move things, you can actually bring Cocoa inside directly. So, I'll move like and I'll explain like what we are trying to do here. So, basically Cocoa agent within SDK is basically uh just think of it as a custom library which you can actually install in your system site. You can just drop it in your code directly. That means developer developers they get direct access to the capabilities that Cocoa already has. So, writing Snowflake, editing files, running shell commands, everything,
+
+00:38:27
+ those basic building blocks uh is directly exposed to developers who can utilize Coco SDK and use those building blocks to build on top of Coco as a core platform. You can use uh you can put actually in your automated pipelines. You can uh use Coco maybe your internal admin tools. You can reinvent your agentic loops from scratch using Coco. So, you just plug in Coco's basic building block capabilities and you should be able to build on top of Coco as a platform with all the safe safeguards in place
+
+00:39:05
+ already. So, that is one of the best parts like the main issue that we have with other agents or SDKs today is we cannot guarantee. With Coco, we have that guarantee like we have the security and governance in place like enterprise grade security and governance already in place. Uh so, I'll So, that basically wraps it up. I I'll just uh take a quick recap on what we discussed today. So, technically uh like after Summit 2026, the major announcements announcements is uh we have Coco desktop which is a
+
+00:39:45
+ native ID for data uh developers or engineers to build their pipelines and notebooks or are building anything directly inside that ID which is built for Snowflake. We are getting a lot of new surfaces like Coco mobile and Slack bots. We have Coco agent in place which people can actually utilize to build their own agents on our engines. And we also have like shareable skills. So, what it means is like the play base if you can see it is like relentless. In in under 1 year's time, Snowflake was actually able to move from
+
+00:40:27
+ Snowflake Cocoa CLI to Cocoa Desktop. And if you see like we are not stopping like we are announcing every week new updates on our Cocoa. And through all of this, the North Star was always governance that what that's what makes Cocoa a more trusted choice for the enterprise teams today. So, with that uh I'll basically encourage everyone to start building building with Cocoa. The platform is fully live. It is optimized. Uh you can immediately leverage Cocoa and Snowflake by clicking on fixed
+
+00:41:05
+ button or clicking on the star sign on the right-hand side of your screen, which you can utilize to optimize or debug your queries. Uh ask your admins to enable cross-region inferences, download Cocoa CLI, Cocoa Desktop. It will actually supercharge your engineering velocity. Personally saying, I'm building data pipelines by just giving Jira ticket numbers. So, because we get early access to everything that Snowflake is building and we have reached at that point like where I have stopped writing code for
+
+00:41:37
+ like last 3 months. I just gave a Jira ticket to Cocoa and it actually reads it. It invokes all the skills that we have already created pipelines. It builds the pipelines on same structures, run tests in dev environments, creates a PR for me, and all I do is basically I review the PR and approve. There's some iterations here and there, but that is the power of Snowflake Cocoa that is being in place. It knows which roles to use, what is the security guardrails. It It does not actually breaks any of the rules. It asks me,
+
+00:42:10
+ prompts me to actually authorize if sensitive uh things needs to be created or high privilege roles are required to run something. So, everything is like very secure. So, with that, I will close off my session. Uh thanks for joining. >> Yeah. Thank you so much, Abhay, for this session. It was really very insightful and interactive, as well. So, now we are open for the questions. Guys, you can drop your questions in the comment section, and we'll take them one by one. So, let's start with the
+
+00:43:02
+ ask your query time. So, the first question is, "How is Coco CLI different GitHub Copilot or Cloud Code for data engineering use cases?" >> Okay. So, answer that like all these agents are like pretty similar. Uh Cloud Code also helps you to build software engineering pipelines. What sets Coco apart is the native knowledge of Snowflake as a product. It's not guessing, first of all. If I'm using Coco CLI or Coco Desktop, it's not making guesses. It knows all my privileges that I have.
+
+00:43:42
+ It knows how I'm actually building my pipelines in production. It knows Snowflake's way of actually optimizing something. So, that is where it is setting uh it apart from Cloud Code or GitHub Copilot. >> Okay. So, we are ahead. Let's go to the next question. "Can Coco CLI integrate with external APIs or custom Python libraries? If yes, what does that integration typically looks like in real world application? >> Yeah. So, basically before MCPS were a thing, we wanted to solve some of the use cases
+
+00:44:22
+ like because we do not have MCPS for everything, right? So, yeah, Cocoa CLI can integrate. It obviously will need those connection authentication types. How it actually helps to build this It is basically like for example, if you use Postman or you use a custom Python SDK. Coco can has already that knowledge because it's not only our data engineering agent, but it's also a general purpose agent as well. And if you want to build an application using those Python libraries, it can actually
+
+00:44:57
+ interact with those external APIs to do a post call or a get call based on your application requirements. >> Okay. Now, the next question is what is underlying cloud provider for Snowflake? Compare it with other platform. >> So, Snowflake is like cloud agnostic. It's on all the three major platforms with with like AWS, Azure and GCP. It's basically like when you create an account or your organization buys an account, it decides on what cloud provider it actually wants. Most of the features get GA on AWS first
+
+00:45:38
+ because that is where the majority of our customer base is. But like it is on all of the cloud platforms that are out there. >> Okay. Now, next question is I'm trying to understand where Cocoa CLI fits in the AI development stack. How is it different from directly calling an LLM API or using framework like LangChain or QAI? >> So, it's it's the same answer. Like Coco has that deep understanding of Snowflake. I'm not saying like other LLMs cannot do it, but Coco, when it comes to a
+
+00:46:14
+ Snowflake use case, can do it better. >> Okay. So, what would be the biggest advantage of building with Coco CLI instead of a traditional back-end with LLM API score? >> Again, it's the same. Like if you have a Snowflake use case, it understands your Snowflake environment, your R back, everything. Like in the best of its capability, it has that metadata of your account. It knows where that data lives. It has that knowledge of your schemas, your live data sources. So, that is where Coco stands
+
+00:46:52
+ out. >> Okay. Now, next question is, when building multi-step AI workflow, how does Coco CLI manage context between different steps? Is there anything developers should be mindful of? >> Okay. So, see, obviously, there are certain guidelines which are not just related to Coco when building multi-step AI application. You need to create your memory files. You need to have like if you are doing a workflow again and again, create skills on top of it. If you want if you already have skills
+
+00:47:35
+ in place and you want to automate something, use the basic concepts of agentic loops. So, it's it's not more of an Coco question, it's more of like how you can optimize the use of your AI tools that are available for you. >> Okay. Now, moving ahead for the next question. If my application needs to work with both structured data from Snowflake and unstructured document like PDFs or reports, what's the recommended approach when building with Cocoa CLI? >> Okay, so uh I I'll categorize it in like two
+
+00:48:11
+ Snowflake features that are already there. Uh if you want to build your data agents on top of your structured data, uh we have something called as Cortex Analyst. So, basically what it does is it you build a semantic layer on top of your structured data and it it gives you those insights when you talk to that agent. Uh for your use cases such as unstructured data for PDFs or reports, uh you can use Cortex search service. So, basically it's a managed rack service which goes through in your entire PDFs and reports and can answer
+
+00:48:42
+ questions based on your unstructured data that actually either lies in your internal or external stages. >> Right. Okay. Now, next question is, what are the Cortex AI rate limits on trial accounts? Best practice to avoid hitting them, try back off, batches, piece, or smaller models. >> Okay, uh I'm not sure about the rate limits or tokens per day to be honest. We at Snowflake, we don't have limits. Uh but the biggest uh be- best practices that we utilize to keep our uh usage low is basically
+
+00:49:23
+ we usually build on the memory files that we have already created. So, if I had an interaction with my Cocoa desktop, I would save it in a memory file uh if if not still in a memory file so that I can utilize it. Other thing is like the more detailed your prompt is, the more information you give, the better chances of it is like it will not diverge from solving the problem in a straight way. >> Okay, I think we have almost covered all the questions. Okay, I think we have covered most of the questions.
+
+00:50:05
+ So. So, thank you so much everyone for joining today's session and thank you so much of your guiding our participants and answering their all the queries. And if you have missed any question, guys you can mail us at support plus cococlihack@hackerskill.com and we'll love to answer all your queries. Thank you so much of your once again. >> Yeah, thank you. Thanks for joining.
+

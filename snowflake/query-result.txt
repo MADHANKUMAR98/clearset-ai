@@ -1,0 +1,137 @@
+
+
+TABLE_NAME
+
+ROW_COUNT
+
+COUNTERPARTIES
+
+5
+
+SECURITIES
+
+5
+
+TRADES
+
+5
+
+SETTLEMENT_INSTRUCTIONS
+
+5
+
+SETTLEMENT_EVENTS
+
+5
+
+EXCEPTIONS
+
+5
+
+HISTORICAL_CASES
+
+5
+
+POLICY_CHUNKS
+
+5
+
+INVESTIGATIONS  ,
+
+
+
+
+TRADE_ID
+
+TRADE_VALUE
+
+QUANTITY
+
+PRICE
+
+SETTLEMENT_TYPE
+
+SETTLEMENT_STATUS
+
+INSTRUCTION_STATUS
+
+TICKER
+
+ISIN
+
+DEPOSITORY
+
+CP_ID
+
+COUNTERPARTY_NAME
+
+TRD-92831
+
+2400000.00
+
+12000
+
+200.0000
+
+DVP
+
+PENDING
+
+MISSING
+
+AAPL
+
+US0378331005
+
+DTC
+
+CP-192
+
+
+
+
+
+EXCEPTION_ID
+
+TRADE_ID
+
+SEVERITY
+
+STATUS
+
+EXCEPTION_TYPE
+
+RISK_SCORE
+
+RISK_BREAKDOWN_JSON
+
+EX-92831
+
+TRD-92831
+
+CRITICAL
+
+OPEN
+
+Missing Instruction
+
+91
+
+{   "cp_failures": 15,   "cutoff_urgency": 25,   "historical_precedents": 6,   "missing_instruction": 25,   "trade_value": 20 }
+
+Apex Prime Clearing Ltd.
+
+
+0 
+
+
+TRADE_ID	STATUS	DEPOSITORY	CASH_ACCOUNT	SECURITIES_ACCOUNT	MISMATCH_DETAILS
+TRD-92831	MISSING	DTC (Participant 0244)	MISSING_SUBACCOUNT_REF	MISSING_DTC_SUBID	DTC Participant ID 0244 provided without linked cash settlement affirmation subaccount. Standing instructions missing for market tier NASDAQ.
+
+
+EVENT_ID	EVENT_TIMESTAMP	MESSAGE_TYPE	STATUS	DESCRIPTION	SOURCE
+EVT-101	2026-08-09 09:32:00.000	INTERNAL_ALERT	TRADE_BOOKED	Trade booked by Equities Desk TR-8821: Buy 12,000 AAPL @ $200.00 ($2.4M DVP).	MATCHING_ENGINE
+EVT-102	2026-08-09 09:32:05.000	SWIFT MT541	SSI_LOOKUP_INITIATED	Automated SSI engine queried Alert master repository for CP-192 / DTC Participant 0244.	MATCHING_ENGINE
+EVT-103	2026-08-09 09:32:15.000	SWIFT MT548	SSI_NOT_FOUND	Depository lookup returned status: No valid standing settlement instruction found for subaccount. Exception flag raised.	DEPOSITORY
+EVT-104	2026-08-09 11:45:00.000	INTERNAL_ALERT	CUTOFF_WARNING_T120	Depository cutoff threshold warning: 120 minutes remaining before 15:30 EST DTC intraday cycle cutoff.	CLEARSET_AGENT
+EVT-105	2026-08-09 11:48:12.000	INTERNAL_ALERT	CRITICAL_RISK_FLAGGED	ClearSet Risk Engine flagged trade with Deterministic Score: 91/100 (CRITICAL). Escalation workflow primed.	CLEARSET_AGENT  
