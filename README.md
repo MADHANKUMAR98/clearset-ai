@@ -48,11 +48,11 @@ $$\text{Total Score} = 25 + 25 + 20 + 15 + 6 = \mathbf{91 / 100}$$
 
 ## 🏛️ System Architecture
 
-ClearSet AI features a clean, service-oriented architecture designed to transition seamlessly from local intelligence simulation (Phase 1) to live Snowflake Cortex (Phase 2):
+ClearSet AI features a clean, decoupled architecture supporting both full local simulation and live Snowflake Cortex integration:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                             REACT 18 UI LAYER                              │
+│                             REACT 19 UI LAYER                              │
 │   Dashboard  •  Exceptions Queue  •  Investigation Workspace  •  Copilot   │
 │                 Cases Ledger  •  Policies & SOP Knowledge                  │
 └─────────────────────────────────────┬──────────────────────────────────────┘
@@ -65,7 +65,7 @@ ClearSet AI features a clean, service-oriented architecture designed to transiti
                                       ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                     SERVICE INTERFACE ABSTRACTION LAYER                    │
-│                      (src/services/types.ts)                               │
+│                            (src/services/types.ts)                         │
 ├──────────────────────┬──────────────────────┬──────────────────────────────┤
 │  ISettlementService  │     IRiskService     │       ICortexService         │
 │  (Trades, Events,    │  (Deterministic      │  (10-Step Orchestrator,      │
@@ -74,81 +74,51 @@ ClearSet AI features a clean, service-oriented architecture designed to transiti
            │                      │                          │
            ▼                      ▼                          ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                    PHASE 1: LOCAL INTELLIGENCE ENGINES                     │
-│   LocalSettlementService  •  LocalRiskService  •  LocalCortexService       │
+│                   STAGE 1: LIGHTWEIGHT BACKEND PROXY (server/)             │
+│   • Express + TypeScript + snowflake-sdk                                   │
+│   • GET /api/health (Auto-detects Snowflake vs Local Fallback mode)        │
+│   • GET /api/test-snowflake (Live warehouse verification query)            │
+│   • Proxies Cortex Search & Cortex Analyst endpoints                       │
 └─────────────────────────────────────┬──────────────────────────────────────┘
-                                      │  (Plug-and-Play Transition to Phase 2)
-                                      ▼
-┌────────────────────────────────────────────────────────────────────────────┐
-│                    PHASE 2: LIVE SNOWFLAKE CORTEX ASSETS                   │
-│   • Snowflake Relational Tables (TRADES, COUNTERPARTIES, SETTLEMENT_EVENTS)│
-│   • Cortex Analyst (Semantic YAML Views for Natural Language Analytics)    │
-│   • Cortex Search Service (Vector Search over Staged SOP PDF/MD Docs)      │
-│   • Snowflake Agent / CoCo Skills (Autonomous Procedural Workflow)         │
-└────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                   ┌──────────────────┴──────────────────┐
+                   ▼                                     ▼
+┌──────────────────────────────────────┐ ┌──────────────────────────────────────┐
+│       LOCAL FALLBACK LAYER           │ │        LIVE SNOWFLAKE PLATFORM       │
+│ • syntheticData.ts (Trades, Events)  │ │ • CLEARSET_DB.CLEARSET_SCHEMA        │
+│ • knowledgeBase.ts (SOPs, Policies)  │ │ • Cortex Search: POLICY_SEARCH       │
+│ • Local Risk & Stepper Simulation    │ │ • Cortex Analyst: CLEARSET_ANALYTICS │
+└──────────────────────────────────────┘ └──────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Modules & Capabilities
+## 🚀 Progress & Implemented Milestones
 
-### 1. Post-Trade Operations Dashboard (`/dashboard`)
-- **Top Telemetry:** Real-time firm metrics (128,420 trades, 386 exceptions, 42 critical, $84.6M gross exposure).
-- **Derived State:** Numbers dynamically update as exceptions are investigated and resolved.
-- **Critical Priority Queue:** Sorted by deterministic risk score with one-click investigation triggers.
-- **Counterparty Fail Concentration:** Horizontal distribution chart identifying high-friction counterparties.
-- **Institutional Resolution Memory:** Live ticker of historical playbook success rates.
+### ✅ Milestone 1: Snowflake Schema & Test Seed Data
+- Relational schema deployed in `CLEARSET_DB.CLEARSET_SCHEMA`:
+  - `TRADES`, `SECURITIES`, `COUNTERPARTIES`, `SETTLEMENT_INSTRUCTIONS`, `SETTLEMENT_EVENTS`, `EXCEPTIONS`, `HISTORICAL_CASES`, `INVESTIGATIONS`, `POLICY_CHUNKS`.
+- Seed data loaded and validated across all tables including hero trade `TRD-92831`.
 
-### 2. Investigation Workspace (`/investigation`)
-- **Showcase Target:** `TRD-92831` ($2.4M AAPL trade with missing SSI).
-- **Interactive "WHY?" Breakdown:** Clicking any risk dimension navigates directly to the corresponding Evidence tab.
-- **10-Step Procedural Workflow Runner:**
-  1. `identify_trade` — Query trade economics, ISIN, and booking desk.
-  2. `check_settlement_state` — Query SWIFT MT541/548 matching status.
-  3. `check_instructions` — Validate SSI against depository participant directory.
-  4. `analyze_counterparty` — Compute 30-day failure rate and delay metrics.
-  5. `find_similar_cases` — Retrieve institutional memory and prior resolution outcomes.
-  6. `retrieve_procedure` — Search Knowledge Base for applicable SOP sections.
-  7. `assess_settlement_risk` — Compute mathematical deterministic point breakdown.
-  8. `determine_root_cause` — Pinpoint primary failure and contributing factors.
-  9. `recommend_resolution` — Formulate actionable 4-step repair plan.
-  10. `request_human_approval` — Present resolution package for analyst authorization.
-- **Evidence Inspector:** 5 tabs (*Applicable SOP §3.2*, *18 Similar Cases*, *Counterparty CP-192*, *Settlement & SSI*, *Trade Specs*).
-- **Human-in-the-Loop Action Panel:** `[ Approve & Dispatch ]` modal that confirms resolution, logs analyst notes, creates an immutable case in `/cases`, avoids $1,566.67/day in CSDR penalties, and simulates SWIFT MT599 repair dispatch.
+### ✅ Milestone 2: Cortex Search & Semantic Views
+- Semantic views deployed:
+  - `V_EXCEPTIONS_ENRICHED`, `V_CRITICAL_APPROACHING_CUTOFF`, `V_COUNTERPARTY_FAIL_STATS`, `V_SETTLEMENT_EVENTS`, `V_TRADE_ENRICHED`, `V_HISTORICAL_CASES`, `V_SSI_STATUS`.
+- Snowflake Cortex Search Service **`CLEARSET_POLICY_SEARCH_SERVICE`** operational over `POLICY_CHUNKS`, successfully retrieving SOP sections (`SOP-OPS-032 §3.2`) for `TRD-92831`.
 
-### 3. AI Copilot (`/copilot`)
-- Grounded post-trade copilot supporting 5 core operational queries:
-  1. *"Show me critical settlement exceptions approaching cutoff."* → Renders interactive trade card.
-  2. *"Investigate TRD-92831."* → Dispatches 10-step procedural workflow runner.
-  3. *"Why is TRD-92831 critical?"* → Renders 5-factor point breakdown widget (91/100).
-  4. *"What should I do according to our SOP?"* → Renders SOP-OPS-032 §3.2 citation and action protocol.
-  5. *"Have we seen this counterparty fail before?"* → Renders CP-192 profile with 7 fails in 30d (8.4% fail rate) and 18 historical cases (88.9% success rate).
+### ✅ Milestone 3: Cortex Analyst Semantic Model
+- Semantic Model codified in [`snowflake/07_semantic_model_CORRECTED.yaml`](snowflake/07_semantic_model_CORRECTED.yaml) and documented in [`snowflake/07_cortex_analyst_validation.md`](snowflake/07_cortex_analyst_validation.md).
+- Verified queries passing:
+  1. Total gross exposure for critical exceptions = **$11,700,000.00**
+  2. `TRD-92831` lookup: $2.4M AAPL, `PENDING` settlement, `MISSING` SSI, Risk Score **91/100**.
+  3. Critical exception query returns `TRD-92831`, `TRD-81232`, and `TRD-71292`.
+  4. Top failure counterparty = `CP-192` (Apex Prime: 7 fails, 8.4% fail rate).
 
-### 4. Exceptions Queue (`/exceptions`)
-- Institutional data table with multi-dimensional filtering by **Severity** (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), **Asset Class** (`Equities`, `Fixed Income`), and **Status** (`OPEN`, `INVESTIGATING`, `PENDING_APPROVAL`, `RESOLVED`).
-
-### 5. Cases & Institutional Memory Ledger (`/cases`)
-- Complete audit trail of past and newly resolved cases. Shows root causes, AI recommendations, human decisions, timestamps, and feedback loops into institutional training memory.
-
-### 6. Policies & SOP Knowledge Base (`/policies`)
-- Searchable repository containing binding operations procedures:
-  - `SOP-OPS-032`: Settlement Exception Standard Operating Procedure (§3.2 SSI Repair)
-  - `SOP-OPS-014`: Intraday Depository Settlement Cutoffs & Escalation Timelines
-  - `POL-RSK-008`: Counterparty Settlement Failure & Credit Risk Escalation Policy
-  - `REG-EU-909`: Central Securities Depositories Regulation (CSDR Article 7 Settlement Discipline)
-
----
-
-## ❄️ Snowflake Native Blueprints (Phase 2 Ready)
-
-All SQL DDL, seed data, semantic views, and Cortex Search scripts are prepared in [`snowflake/`](snowflake/):
-
-| Script | Purpose |
-| :--- | :--- |
-| [`snowflake/01_schema.sql`](snowflake/01_schema.sql) | DDL for `COUNTERPARTIES`, `SECURITIES`, `TRADES`, `SETTLEMENT_INSTRUCTIONS`, `SETTLEMENT_EVENTS`, `EXCEPTIONS`, `HISTORICAL_CASES`, `INVESTIGATIONS` |
-| [`snowflake/02_seeds.sql`](snowflake/02_seeds.sql) | Institutional financial dataset seeding high-friction counterparties, active trades, and historical cases |
-| [`snowflake/03_semantic_views.sql`](snowflake/03_semantic_views.sql) | Cortex Analyst semantic views (`V_EXCEPTION_TRIAGE_ANALYTICS`, `V_COUNTERPARTY_PERFORMANCE_ANALYTICS`) |
-| [`snowflake/04_cortex_search.sql`](snowflake/04_cortex_search.sql) | Cortex Search Service configuration indexing staged SOP markdown and regulatory documents |
+### ✅ Stage 1 (Integration Foundation): Node.js + TypeScript Backend
+- Lightweight backend created under [`server/`](server/):
+  - `GET /api/health` — Safe health check reporting `{ mode: "snowflake" | "local", snowflake: boolean }`.
+  - `GET /api/test-snowflake` — Harmless query testing connection to Snowflake session.
+  - Safe error handling: If Snowflake credentials are absent, the server runs seamlessly in local mode without crashing.
+  - Server-side credential isolation via `.env` (template provided in [`server/.env.example`](server/.env.example)).
 
 ---
 
@@ -156,16 +126,25 @@ All SQL DDL, seed data, semantic views, and Cortex Search scripts are prepared i
 
 ```text
 clearset-ai/
-├── package.json               # Vite + React 18 + TypeScript + Tailwind v4
-├── vite.config.ts             # Vite configuration with @tailwindcss/vite
-├── postcss.config.js          # PostCSS configuration with @tailwindcss/postcss
+├── package.json               # Root Vite + React 19 SPA manifest & server scripts
+├── vite.config.ts             # Vite configuration with @tailwindcss/postcss
 ├── index.html                 # App shell with Google Inter font
 ├── README.md                  # Project documentation & architecture
-├── snowflake/                 # Snowflake native SQL blueprints & semantic views
+├── server/                    # Node.js + TypeScript Backend Proxy (Stage 1)
+│   ├── package.json           # Backend dependencies (express, snowflake-sdk, etc.)
+│   ├── tsconfig.json          # NodeNext TypeScript configuration
+│   ├── .env.example           # Environment template for Snowflake credentials
+│   ├── index.ts               # Express server with /api/health & /api/test-snowflake
+│   └── snowflakeClient.ts     # Snowflake SDK connection & query runner
+├── snowflake/                 # Snowflake native SQL blueprints & semantic models
 │   ├── 01_schema.sql          # Relational DDL tables
 │   ├── 02_seeds.sql           # Financial test seeds
-│   ├── 03_semantic_views.sql  # Cortex Analyst views
-│   └── 04_cortex_search.sql   # Cortex Search setup
+│   ├── 03_semantic_views.sql  # Semantic views for Cortex Analyst & reporting
+│   ├── 04_cortex_search.sql   # Cortex Search Service setup
+│   ├── 05_validation.sql      # Core validation queries
+│   ├── 06_cortex_search_validation.sql # Search service tests
+│   ├── 07_cortex_analyst_validation.md # Semantic model validation guide
+│   └── 07_semantic_model_CORRECTED.yaml # Validated Cortex Analyst semantic model
 ├── skills/                    # CoCo procedural agent skill definitions
 │   ├── investigate_exception/ # 10-step master investigation sequence
 │   ├── assess_settlement_risk/# Deterministic risk scoring rules
@@ -177,66 +156,79 @@ clearset-ai/
 ├── src/
 │   ├── main.tsx               # Entrypoint
 │   ├── App.tsx                # App layout & routing
-│   ├── index.css              # Obsidian theme, color tokens & typography
-│   ├── types/                 # TypeScript entity & interface definitions
-│   │   ├── index.ts           # Core domain types
-│   │   └── services.ts        # Service contracts
-│   ├── services/              # Decoupled service layer
-│   │   ├── types.ts           # ISettlementService, IRiskService, ICortexService
-│   │   ├── settlementService.ts # Local mock / future Snowflake SQL adapter
-│   │   ├── riskService.ts     # Deterministic risk engine
-│   │   ├── cortexService.ts   # 10-step stepper & grounded copilot handler
-│   │   └── knowledgeService.ts# SOP search & retrieval
-│   ├── context/
-│   │   └── AppContext.tsx     # Global state management & dynamic metric derivation
-│   ├── data/
-│   │   ├── syntheticData.ts   # Consistent financial entities & historical cases
-│   │   └── knowledgeBase.ts   # Post-trade standard operating procedures
-│   ├── components/
-│   │   └── layout/
-│   │       ├── Navbar.tsx     # Brand, live exposure, search & telemetry badge
-│   │       └── Sidebar.tsx    # Navigation & priority risk triage widget
-│   └── views/
-│       ├── DashboardView.tsx     # Metrics, priority queue, fail distribution
-│       ├── InvestigationView.tsx # Hero showcase workspace for TRD-92831
-│       ├── CopilotView.tsx       # Grounded Cortex Agent chat interface
-│       ├── ExceptionsView.tsx    # High-density exception table with filters
-│       ├── CasesView.tsx         # Cases ledger & audit trail
-│       └── PoliciesView.tsx      # SOP & policy knowledge explorer
+│   ├── index.css              # Obsidian dark theme & design tokens
+│   ├── types/                 # TypeScript domain entity & interface definitions
+│   ├── services/              # Service contracts (ISettlementService, ICortexService)
+│   ├── context/               # Global AppContext & dynamic metric state
+│   ├── data/                  # Local synthetic data & SOP knowledge base
+│   ├── engine/                # Deterministic risk engine & orchestrator
+│   ├── components/            # Reusable UI components & layouts
+│   └── views/                 # Core application views (Dashboard, Investigation, Copilot, etc.)
 ```
 
 ---
 
 ## ⚡ Quickstart & Running Locally
 
-### Prerequisites
-- Node.js (v18+)
-- npm (v9+)
-
-### Installation
+### 1. Run the Frontend (React 19 SPA)
 ```bash
-# 1. Install dependencies
+# Install frontend dependencies
 npm install
 
-# 2. Start Vite local development server
+# Start Vite development server
 npm run dev
 ```
+The frontend will launch at **`http://localhost:5173/`**.
 
-The application will launch at **`http://localhost:5173/`**.
-
-### Build Verification
+### 2. Run the Backend Proxy (Node.js + TypeScript)
 ```bash
-# Type check and build production bundle
-npm run build
+# Install backend dependencies
+cd server
+npm install --ignore-scripts
+cd ..
+
+# Start backend server with hot reload
+npm run server
+```
+The backend will launch at **`http://localhost:3001/`**.
+
+### 3. Test Backend Endpoints
+```bash
+# Check health and mode (returns local or snowflake)
+curl http://localhost:3001/api/health
+
+# Test Snowflake connection query
+curl http://localhost:3001/api/test-snowflake
 ```
 
 ---
 
-## 🏆 Hackathon Evaluation Summary
+## 🔐 Enabling Live Snowflake Connection
 
-- **Domain-Specific AI Copilot:** Built strictly for capital markets post-trade exception management.
+To connect the backend to your live Snowflake instance:
+
+1. Copy [`server/.env.example`](server/.env.example) to `server/.env`:
+   ```env
+   PORT=3001
+   SNOWFLAKE_ACCOUNT=your_snowflake_account_identifier
+   SNOWFLAKE_USER=your_snowflake_username
+   SNOWFLAKE_PASSWORD=your_snowflake_password
+   SNOWFLAKE_DATABASE=CLEARSET_DB
+   SNOWFLAKE_SCHEMA=CLEARSET_SCHEMA
+   SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+   SNOWFLAKE_ROLE=SYSADMIN
+   ```
+2. Restart the backend (`npm run server`).
+3. Calling `GET /api/health` will confirm: `mode: "snowflake"`, `snowflake: true`.
+
+---
+
+## 🏆 Key Features
+
+- **Domain-Specific Post-Trade AI Copilot:** Purpose-built for capital markets settlement exception management.
 - **Deterministic & Explainable:** Mathematical 91-point score on `TRD-92831` with zero hallucinations.
-- **Procedural Agent Workflow:** 10-step investigation workflow with live telemetry log streaming.
+- **10-Step Procedural Workflow:** Guided investigation from trade master data to depository matching, SSI check, and policy lookup.
 - **Evidence Traceability:** Complete visual lineage from risk factors into raw depository events, counterparty metrics, and SOP citations.
 - **Human-in-the-Loop:** Sensitive SWIFT MT599 dispatch and case creation strictly require human analyst authorization.
-- **Snowflake-Native Ready:** Full DDL, seeds, semantic views, and Cortex Search scripts prepared for Phase 2.
+- **Snowflake-Native:** Relational schema, Cortex Search (`CLEARSET_POLICY_SEARCH_SERVICE`), and Cortex Analyst (`CLEARSET_ANALYTICS`) fully validated with automated fallback.
+
