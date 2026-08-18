@@ -354,6 +354,155 @@ tables:
         data_type: NUMBER
         default_aggregation: sum
 
+  # ---------------------------------------------------------------------------
+  # 5. SETTLEMENT INSTRUCTIONS (Standing Settlement Instructions & Mismatches)
+  # ---------------------------------------------------------------------------
+  - name: settlement_instructions
+    description: >
+      Standing settlement instructions (SSI), depository participant details, 
+      cash/securities accounts, and mismatch status.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: V_SSI_STATUS
+
+    dimensions:
+      - name: instruction_id
+        synonyms: ["ssi id", "instruction reference"]
+        description: Unique identifier for settlement instruction.
+        expr: INSTRUCTION_ID
+        data_type: VARCHAR
+        unique: true
+        sample_values: ["SSI-92831", "SSI-81232", "SSI-71292"]
+
+      - name: trade_id
+        synonyms: ["trade ticket", "trade id"]
+        description: Trade ID linked to this settlement instruction.
+        expr: TRADE_ID
+        data_type: VARCHAR
+        sample_values: ["TRD-92831", "TRD-81232", "TRD-71292"]
+
+      - name: counterparty_id
+        synonyms: ["cp id", "counterparty id"]
+        description: Counterparty ID associated with the instruction.
+        expr: CP_ID
+        data_type: VARCHAR
+        sample_values: ["CP-192", "CP-104", "CP-088"]
+
+      - name: counterparty_name
+        synonyms: ["counterparty", "firm name"]
+        description: Name of counterparty broker/custodian.
+        expr: COUNTERPARTY_NAME
+        data_type: VARCHAR
+        sample_values: ["Apex Prime Clearing Ltd.", "Vanguard Global Markets"]
+
+      - name: settlement_type
+        synonyms: ["settlement mechanism", "delivery method"]
+        description: Settlement method (DVP, FOP).
+        expr: SETTLEMENT_TYPE
+        data_type: VARCHAR
+        sample_values: ["DVP", "FOP"]
+
+      - name: custodian_bic
+        synonyms: ["bic", "custodian swift code"]
+        description: Custodian Bank Identifier Code.
+        expr: CUSTODIAN_BIC
+        data_type: VARCHAR
+        sample_values: ["APEXUS33XXX", "VANGUS33XXX"]
+
+      - name: depository
+        synonyms: ["clearing house", "CSD"]
+        description: Central securities depository (DTC, Fedwire, Euroclear).
+        expr: DEPOSITORY
+        data_type: VARCHAR
+        sample_values: ["DTC", "Fedwire", "Euroclear"]
+
+      - name: cash_account
+        synonyms: ["cash subaccount", "settlement cash account"]
+        description: Designated cash clearing account ID.
+        expr: CASH_ACCOUNT
+        data_type: VARCHAR
+
+      - name: securities_account
+        synonyms: ["safekeeping account", "depository account"]
+        description: Safekeeping securities account.
+        expr: SECURITIES_ACCOUNT
+        data_type: VARCHAR
+
+      - name: ssi_status
+        synonyms: ["instruction state", "match status"]
+        description: SSI verification state (MISSING, MISMATCHED, MATCHED, PENDING).
+        expr: SSI_STATUS
+        data_type: VARCHAR
+        sample_values: ["MISSING", "MISMATCHED", "MATCHED", "PENDING"]
+
+      - name: mismatch_details
+        synonyms: ["mismatch reason", "discrepancy notes"]
+        description: Detailed explanation of any instruction mismatch or missing data.
+        expr: MISMATCH_DETAILS
+        data_type: VARCHAR
+
+    time_dimensions:
+      - name: settlement_date
+        synonyms: ["value date", "intended settlement date"]
+        description: Intended date of settlement.
+        expr: SETTLEMENT_DATE
+        data_type: DATE
+
+      - name: cutoff_time
+        synonyms: ["deadline", "settlement cutoff"]
+        description: Settlement cutoff timestamp.
+        expr: CUTOFF_TIME
+        data_type: TIMESTAMP_NTZ
+
+    measures:
+      - name: trade_value
+        synonyms: ["gross exposure", "notional value"]
+        description: Trade monetary value in USD.
+        expr: TRADE_VALUE
+        data_type: NUMBER
+        default_aggregation: sum
+
+# -----------------------------------------------------------------------------
+# RELATIONSHIPS (Cross-table joins across the post-trade semantic graph)
+# -----------------------------------------------------------------------------
+relationships:
+  - name: exception_to_counterparty
+    left_table: exceptions_enriched
+    right_table: counterparties
+    relationship_type: many_to_one
+    join_type: left_outer
+    relationship_columns:
+      - left_column: counterparty_id
+        right_column: cp_id
+
+  - name: exception_to_settlement_events
+    left_table: exceptions_enriched
+    right_table: settlement_events
+    relationship_type: one_to_many
+    join_type: left_outer
+    relationship_columns:
+      - left_column: trade_id
+        right_column: trade_id
+
+  - name: counterparty_to_historical_cases
+    left_table: counterparties
+    right_table: historical_cases
+    relationship_type: one_to_many
+    join_type: left_outer
+    relationship_columns:
+      - left_column: cp_id
+        right_column: counterparty_id
+
+  - name: exception_to_settlement_instructions
+    left_table: exceptions_enriched
+    right_table: settlement_instructions
+    relationship_type: one_to_one
+    join_type: left_outer
+    relationship_columns:
+      - left_column: trade_id
+        right_column: trade_id
+
 # -----------------------------------------------------------------------------
 # VERIFIED QUERIES (Ground-Truth Few-Shot Queries for Cortex Analyst)
 # -----------------------------------------------------------------------------

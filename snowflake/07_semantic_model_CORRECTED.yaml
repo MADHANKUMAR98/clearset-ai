@@ -1,0 +1,750 @@
+name: CLEARSET_ANALYTICS
+tables:
+  - name: COUNTERPARTIES
+    description: The table contains records of counterparties involved in trade or financial settlement activity. Each record represents a single counterparty and includes identifying information such as standard financial identifiers, credit rating, and contact details, alongside performance metrics related to trade failures and resolution history.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: COUNTERPARTIES
+    dimensions:
+      - name: BIC
+        description: Bank Identifier Code (BIC) used to uniquely identify a financial institution in international transactions.
+        expr: BIC
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - VANGUS33XXX
+          - GSEXUS33XXX
+          - APEXUS33XXX
+      - name: CP_ID
+        description: Unique identifier assigned to each counterparty.
+        expr: CP_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - CP-088
+          - CP-104
+          - CP-192
+      - name: CREDIT_RATING
+        description: The credit rating assigned to a counterparty.
+        expr: CREDIT_RATING
+        data_type: VARCHAR(10)
+        access_modifier: public_access
+        sample_values:
+          - A
+          - AA+
+          - AA
+      - name: LEI
+        description: Legal Entity Identifier (LEI) uniquely identifying each counterparty in financial transactions.
+        expr: LEI
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - 5493006MHB84DD0Z4J21
+          - W22LROWP2IHZNBB6K528
+          - 54930089K8L62NNX8211
+      - name: NAME
+        description: The name of the counterparty involved in the clearing or settlement relationship.
+        expr: NAME
+        data_type: VARCHAR(255)
+        access_modifier: public_access
+        sample_values:
+          - Goldman Execution Services
+          - Vanguard Global Markets
+          - Apex Prime Clearing Ltd.
+      - name: PRIMARY_DESK_CONTACT
+        description: The name and associated desk or department of the primary contact person for a counterparty.
+        expr: PRIMARY_DESK_CONTACT
+        data_type: VARCHAR(255)
+        access_modifier: public_access
+        sample_values:
+          - Marcus Vance (Equities Clearing Desk NY)
+          - Sarah Jenkins (Fixed Income Operations)
+          - David Sterling (Institutional Settlements NY)
+      - name: PRIMARY_EMAIL
+        description: Primary email address used for contacting the counterparty.
+        expr: PRIMARY_EMAIL
+        data_type: VARCHAR(255)
+        access_modifier: public_access
+        sample_values:
+          - posttrade@vanguardmarkets.com
+          - ops-escalations@gs.com
+          - settlements.desk@apexclearing.com
+      - name: PRIOR_FAILURES_30D
+        description: The number of prior failures recorded for a counterparty in the last 30 days.
+        expr: PRIOR_FAILURES_30D
+        data_type: NUMBER(38,0)
+        access_modifier: public_access
+        sample_values:
+          - '6'
+          - '7'
+          - '5'
+      - name: TOTAL_TRADES_TODAY
+        description: The total number of trades executed today for each counterparty.
+        expr: TOTAL_TRADES_TODAY
+        data_type: NUMBER(38,0)
+        access_modifier: public_access
+        sample_values:
+          - '210'
+          - '340'
+          - '84'
+    time_dimensions:
+      - name: UPDATED_AT
+        description: The date and time when the counterparty record was last updated.
+        expr: UPDATED_AT
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-17T07:22:24.192Z'
+    facts:
+      - name: AVG_RESOLUTION_HOURS
+        description: The average number of hours taken to resolve counterparty-related matters.
+        expr: AVG_RESOLUTION_HOURS
+        data_type: FLOAT
+        access_modifier: public_access
+        sample_values:
+          - '4.2'
+          - '2.1'
+          - '2.8'
+      - name: HISTORICAL_FAIL_RATE
+        description: The historical rate at which a counterparty has failed to meet its obligations.
+        expr: HISTORICAL_FAIL_RATE
+        data_type: FLOAT
+        access_modifier: public_access
+        sample_values:
+          - '8.4'
+          - '4.1'
+          - '3.2'
+    primary_key:
+      columns:
+        - CP_ID
+  - name: EXCEPTIONS
+    description: The table contains records of exceptions flagged against trades, capturing risk and compliance issues identified during processing. Each record represents a single exception and includes details about its type, severity, and status, along with risk scoring information, detection and resolution timestamps, and analyst assignment.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: EXCEPTIONS
+    dimensions:
+      - name: ASSIGNED_ANALYST
+        description: The analyst assigned to handle or review the exception.
+        expr: ASSIGNED_ANALYST
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+      - name: EXCEPTION_ID
+        description: Unique identifier assigned to each exception record.
+        expr: EXCEPTION_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - EX-71292
+          - EX-65419
+          - EX-81232
+      - name: EXCEPTION_TYPE
+        description: The type of exception recorded for a given transaction or instruction.
+        expr: EXCEPTION_TYPE
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - Instruction Pending
+          - Cash Discrepancy
+          - Missing Instruction
+      - name: RISK_BREAKDOWN_JSON
+        description: A JSON object containing a breakdown of risk-related metrics including counterparty failures and trade value.
+        expr: RISK_BREAKDOWN_JSON
+        data_type: VARIANT
+        access_modifier: public_access
+        sample_values:
+          - |-
+            {
+              "cp_failures": 15,
+              "cutoff_urgency": 25,
+              "historical_precedents": 6,
+              "missing_instruction": 25,
+              "trade_value": 20
+            }
+          - |-
+            {
+              "cp_failures": 15,
+              "cutoff_urgency": 25,
+              "historical_precedents": 6,
+              "missing_instruction": 25,
+              "trade_value": 15
+            }
+          - |-
+            {
+              "cp_failures": 15,
+              "cutoff_urgency": 25,
+              "historical_precedents": 11,
+              "mismatch_instruction": 18,
+              "trade_value": 20
+            }
+      - name: RISK_SCORE
+        description: A numerical score representing the assessed level of risk associated with an exception.
+        expr: RISK_SCORE
+        data_type: NUMBER(38,0)
+        access_modifier: public_access
+        sample_values:
+          - '91'
+          - '89'
+          - '86'
+      - name: SEVERITY
+        description: The severity level of an exception.
+        expr: SEVERITY
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - CRITICAL
+          - HIGH
+      - name: STATUS
+        description: The current status of the exception record.
+        expr: STATUS
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - OPEN
+          - INVESTIGATING
+      - name: TRADE_ID
+        description: Unique identifier assigned to each trade associated with an exception.
+        expr: TRADE_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - TRD-81232
+          - TRD-71292
+          - TRD-92831
+    time_dimensions:
+      - name: DETECTED_AT
+        description: The date and time when the exception was detected.
+        expr: DETECTED_AT
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-17T07:22:26.529Z'
+      - name: RESOLVED_AT
+        description: The date and time at which an exception was resolved.
+        expr: RESOLVED_AT
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+    primary_key:
+      columns:
+        - EXCEPTION_ID
+        - TRADE_ID
+    foreign_keys:
+      - fkey_columns:
+          - TRADE_ID
+        pkey_table:
+          database: CLEARSET_DB
+          schema: CLEARSET_SCHEMA
+          table: TRADES
+        pkey_columns:
+          - TRADE_ID
+  - name: HISTORICAL_CASES
+    description: The table contains records of historical settlement failure cases and their resolutions. Each record represents a single case and includes details about the counterparty involved, the root cause of the failure, the procedures and strategies applied to resolve it, and the resulting outcome including time to resolution and any penalties avoided.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: HISTORICAL_CASES
+    dimensions:
+      - name: APPLIED_PROCEDURE
+        description: The specific settlement exception standard operating procedure or policy applied to a historical case.
+        expr: APPLIED_PROCEDURE
+        data_type: VARCHAR(255)
+        access_modifier: public_access
+        sample_values:
+          - Settlement Exception SOP §4.1 (Post-Cutoff Fail Logging)
+          - Settlement Exception SOP §3.2 (Expedited SSI Repair)
+          - Settlement Exception SOP §3.2 & Counterparty Escalation Policy §2.1
+      - name: CP_ID
+        description: Unique identifier assigned to a case profile.
+        expr: CP_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - CP-192
+      - name: HISTORICAL_CASE_ID
+        description: Unique identifier assigned to each historical investigation case.
+        expr: HISTORICAL_CASE_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - INV-2026-00389
+          - INV-2026-00311
+          - INV-2026-00412
+      - name: ORIGINAL_TRADE_ID
+        description: The unique identifier assigned to the original trade associated with a historical case.
+        expr: ORIGINAL_TRADE_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - TRD-77821
+          - TRD-71092
+          - TRD-76504
+      - name: OUTCOME
+        description: The final outcome or resolution status of a historical case.
+        expr: OUTCOME
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - RESOLVED_SUCCESS
+          - FAILED_SETTLEMENT
+      - name: RESOLUTION_STRATEGY
+        description: The strategy or approach used to resolve a case including details about dispatch methods escalation actions and outcome confirmations.
+        expr: RESOLUTION_STRATEGY
+        data_type: VARCHAR(16777216)
+        access_modifier: public_access
+        sample_values:
+          - No early escalation initiated; trade failed at DTC end of day
+          - Direct phone escalation to CP-192 desk lead; manual depository override affirmed
+          - Dispatched automated SSI repair request to CP-192 Operations desk + early escalation
+      - name: ROOT_CAUSE
+        description: A brief description of the underlying root cause of a historical settlement failure case.
+        expr: ROOT_CAUSE
+        data_type: VARCHAR(16777216)
+        access_modifier: public_access
+        sample_values:
+          - Unconfirmed standing settlement instruction approaching 90m cutoff on MSFT trade ($2.2M)
+          - Missing DTC subaccount SSI on high-value US Equities DVP trade ($3.1M)
+          - Missing SSI not addressed until 15 mins prior to cutoff; counterparty failed to reply in time
+      - name: SIMILARITY_EMBEDDING
+        description: A column holding data of type VECTOR(FLOAT, 768).
+        expr: SIMILARITY_EMBEDDING
+        data_type: VECTOR(FLOAT, 768)
+        access_modifier: public_access
+    time_dimensions:
+      - name: CASE_DATE
+        description: The date associated with a historical case.
+        expr: CASE_DATE
+        data_type: DATE
+        access_modifier: public_access
+        sample_values:
+          - '2026-07-28'
+          - '2026-07-15'
+          - '2026-07-22'
+    facts:
+      - name: CSDR_PENALTY_AVOIDED
+        description: The total penalty amount avoided through Cost and Schedule Data Reporting resolution in historical cases.
+        expr: CSDR_PENALTY_AVOIDED
+        data_type: NUMBER(18,2)
+        access_modifier: public_access
+        sample_values:
+          - '14500.00'
+          - '0.00'
+          - '9800.00'
+      - name: TIME_TO_RESOLVE_HOURS
+        description: The number of hours taken to resolve a historical case.
+        expr: TIME_TO_RESOLVE_HOURS
+        data_type: FLOAT
+        access_modifier: public_access
+        sample_values:
+          - '24'
+          - '1.2'
+          - '1.5'
+    primary_key:
+      columns:
+        - HISTORICAL_CASE_ID
+    foreign_keys:
+      - fkey_columns:
+          - CP_ID
+        pkey_table:
+          database: CLEARSET_DB
+          schema: CLEARSET_SCHEMA
+          table: COUNTERPARTIES
+        pkey_columns:
+          - CP_ID
+  - name: SECURITIES
+    description: The table contains records of financial securities and their identifying attributes. Each record represents a single security and includes details about its classification, such as asset class and market tier, along with depository information and standard industry identifiers.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: SECURITIES
+    dimensions:
+      - name: ASSET_CLASS
+        description: The broad category of asset class to which a security belongs.
+        expr: ASSET_CLASS
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - Fixed Income
+          - Equities
+      - name: CUSIP
+        description: Committee on Uniform Securities Identification Procedures (CUSIP) number uniquely identifying a security.
+        expr: CUSIP
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - 912828ZG6
+          - 67066G104
+          - '037833100'
+      - name: DEPOSITORY
+        description: The depository or settlement system through which a security is held or transferred.
+        expr: DEPOSITORY
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - DTC
+          - Fedwire
+      - name: ISIN
+        description: International Securities Identification Numbers used to uniquely identify financial securities.
+        expr: ISIN
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - US0378331005
+          - US67066G1040
+          - US912828ZG64
+      - name: MARKET_TIER
+        description: The market tier or classification level of the security within its respective exchange or market category.
+        expr: MARKET_TIER
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - NASDAQ Global Select
+          - US Government
+      - name: NAME
+        description: The full name of the security.
+        expr: NAME
+        data_type: VARCHAR(255)
+        access_modifier: public_access
+        sample_values:
+          - Apple Inc. Common Stock
+          - NVIDIA Corp Common Stock
+          - US Treasury 4.25% Due 2034
+      - name: TICKER
+        description: The ticker symbol used to identify a security on a financial exchange.
+        expr: TICKER
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - UST10Y
+          - AAPL
+          - NVDA
+    time_dimensions:
+      - name: UPDATED_AT
+        description: The date and time when the security record was last updated.
+        expr: UPDATED_AT
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-17T07:22:25.078Z'
+    primary_key:
+      columns:
+        - ISIN
+  - name: SETTLEMENT_INSTRUCTIONS
+    description: The table contains records of settlement instructions associated with financial trades. Each record captures the settlement type, custodian and depository details, account information for both cash and securities, and the current processing status including any mismatch details.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: SETTLEMENT_INSTRUCTIONS
+    dimensions:
+      - name: CASH_ACCOUNT
+        description: The cash account reference or identifier associated with a settlement instruction.
+        expr: CASH_ACCOUNT
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - MISSING_CASH_SUB
+          - MISSING_SUBACCOUNT_REF
+          - CASH-FED-992182
+      - name: CUSTODIAN_BIC
+        description: The Bank Identifier Code (BIC) of the custodian associated with the settlement instruction.
+        expr: CUSTODIAN_BIC
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - GSEXUS33XXX
+          - APEXUS33XXX
+          - VANGUS33XXX
+      - name: DEPOSITORY
+        description: The depository or financial institution responsible for settling transactions including relevant participant identifiers.
+        expr: DEPOSITORY
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - DTC (Participant 0244)
+          - DTC (Participant 0012)
+          - Fedwire / BNY Mellon
+      - name: INSTRUCTION_ID
+        description: Unique identifier for each settlement instruction record.
+        expr: INSTRUCTION_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - SSI-92831
+          - SSI-81232
+          - SSI-71292
+      - name: MISMATCH_DETAILS
+        description: Detailed descriptions of discrepancies or mismatches identified during the settlement instruction process.
+        expr: MISMATCH_DETAILS
+        data_type: VARCHAR(16777216)
+        access_modifier: public_access
+        sample_values:
+          - Custodian subaccount unmapped for DTC equities clearing window.
+          - 'Cash amount mismatch: Ticket states $8,100,000.00; Fedwire affirmation message states $8,095,450.00 (Variance: -$4,550.00 accrued coupon interest mismatch).'
+          - DTC Participant ID 0244 provided without linked cash settlement affirmation subaccount. Standing instructions missing for market tier NASDAQ.
+      - name: SECURITIES_ACCOUNT
+        description: Identifiers for the securities accounts associated with settlement instructions.
+        expr: SECURITIES_ACCOUNT
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - SEC-DTC-77192
+          - MISSING_DTC_SUBID
+          - SEC-FED-002194
+      - name: SETTLEMENT_TYPE
+        description: The type of settlement used for a financial transaction.
+        expr: SETTLEMENT_TYPE
+        data_type: VARCHAR(10)
+        access_modifier: public_access
+        sample_values:
+          - DVP
+      - name: STATUS
+        description: The current status of the settlement instruction.
+        expr: STATUS
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - MISSING
+          - MISMATCHED
+          - PENDING
+      - name: TRADE_ID
+        description: Unique identifier assigned to each trade associated with a settlement instruction.
+        expr: TRADE_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - TRD-81232
+          - TRD-71292
+          - TRD-92831
+    time_dimensions:
+      - name: LAST_UPDATED
+        description: The date and time when the settlement instruction record was last updated.
+        expr: LAST_UPDATED
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-17T07:22:25.847Z'
+    primary_key:
+      columns:
+        - INSTRUCTION_ID
+        - TRADE_ID
+    foreign_keys:
+      - fkey_columns:
+          - TRADE_ID
+        pkey_table:
+          database: CLEARSET_DB
+          schema: CLEARSET_SCHEMA
+          table: TRADES
+        pkey_columns:
+          - TRADE_ID
+  - name: TRADES
+    description: The table contains records of financial trades, capturing details of individual trade transactions. Each record represents a single trade and includes details about the traded instrument, counterparty, pricing, and settlement, spanning various booking desks, currencies, and settlement types.
+    base_table:
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+      table: TRADES
+    dimensions:
+      - name: BOOKING_DESK
+        description: The trading desk responsible for booking the trade.
+        expr: BOOKING_DESK
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - Rates & Sovereign Debt
+          - Tech Sector Trading Desk
+          - US Institutional Equities
+      - name: CP_ID
+        description: Identifier for the counterparty associated with a trade.
+        expr: CP_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - CP-192
+          - CP-088
+          - CP-104
+      - name: CURRENCY
+        description: The currency in which the trade is denominated.
+        expr: CURRENCY
+        data_type: VARCHAR(10)
+        access_modifier: public_access
+        sample_values:
+          - USD
+      - name: INSTRUCTION_STATUS
+        description: The status of a trade instruction.
+        expr: INSTRUCTION_STATUS
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - MISSING
+          - PENDING
+          - MISMATCHED
+      - name: ISIN
+        description: International Securities Identification Numbers used to uniquely identify financial securities traded.
+        expr: ISIN
+        data_type: VARCHAR(20)
+        access_modifier: public_access
+        sample_values:
+          - US67066G1040
+          - US912828ZG64
+          - US0378331005
+      - name: QUANTITY
+        description: The number of units involved in a trade.
+        expr: QUANTITY
+        data_type: NUMBER(38,0)
+        access_modifier: public_access
+        sample_values:
+          - '80000'
+          - '12000'
+          - '10000'
+      - name: SETTLEMENT_STATUS
+        description: The current settlement status of a trade.
+        expr: SETTLEMENT_STATUS
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - PENDING
+      - name: SETTLEMENT_TYPE
+        description: The method by which a trade is settled.
+        expr: SETTLEMENT_TYPE
+        data_type: VARCHAR(10)
+        access_modifier: public_access
+        sample_values:
+          - DVP
+      - name: TRADE_ID
+        description: Unique identifier assigned to each trade record.
+        expr: TRADE_ID
+        data_type: VARCHAR(50)
+        access_modifier: public_access
+        sample_values:
+          - TRD-92831
+          - TRD-71292
+          - TRD-81232
+      - name: TRADER_REF
+        description: A unique reference identifier for a trader, combining a trade reference code with the associated trader's name.
+        expr: TRADER_REF
+        data_type: VARCHAR(100)
+        access_modifier: public_access
+        sample_values:
+          - TR-4192 (Sarah Lin)
+          - TR-7719 (Jason Vance)
+          - TR-8821 (Alex Mercer)
+    time_dimensions:
+      - name: CREATED_AT
+        description: The date and time when the trade record was created.
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-17T07:22:25.492Z'
+      - name: CUTOFF_TIME
+        description: The date and time at which a trade cutoff occurs.
+        expr: CUTOFF_TIME
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-09T15:00:00.000Z'
+          - '2026-08-09T15:30:00.000Z'
+          - '2026-08-09T16:00:00.000Z'
+      - name: SETTLEMENT_DATE
+        description: The date on which a trade is scheduled to be settled.
+        expr: SETTLEMENT_DATE
+        data_type: DATE
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-09'
+      - name: TRADE_DATE
+        description: The date and time at which a trade was executed.
+        expr: TRADE_DATE
+        data_type: TIMESTAMP_NTZ(9)
+        access_modifier: public_access
+        sample_values:
+          - '2026-08-09T09:45:00.000Z'
+          - '2026-08-09T09:32:00.000Z'
+          - '2026-08-09T08:15:00.000Z'
+    facts:
+      - name: PRICE
+        description: The price of a trade.
+        expr: PRICE
+        data_type: NUMBER(18,4)
+        access_modifier: public_access
+        sample_values:
+          - '200.0000'
+          - '120.0000'
+          - '101.2500'
+      - name: TRADE_VALUE
+        description: The total monetary value of a trade.
+        expr: TRADE_VALUE
+        data_type: NUMBER(18,2)
+        access_modifier: public_access
+        sample_values:
+          - '8100000.00'
+          - '1200000.00'
+          - '2400000.00'
+    primary_key:
+      columns:
+        - ISIN
+        - TRADE_ID
+    foreign_keys:
+      - fkey_columns:
+          - CP_ID
+        pkey_table:
+          database: CLEARSET_DB
+          schema: CLEARSET_SCHEMA
+          table: COUNTERPARTIES
+        pkey_columns:
+          - CP_ID
+      - fkey_columns:
+          - ISIN
+        pkey_table:
+          database: CLEARSET_DB
+          schema: CLEARSET_SCHEMA
+          table: SECURITIES
+        pkey_columns:
+          - ISIN
+    unique_keys:
+      - columns:
+          - TRADE_ID
+relationships:
+  - name: HISTORICAL_CASES_TO_COUNTERPARTIES
+    left_table: HISTORICAL_CASES
+    right_table: COUNTERPARTIES
+    relationship_columns:
+      - left_column: CP_ID
+        right_column: CP_ID
+    relationship_type: many_to_one
+    join_type: inner
+
+  - name: TRADES_TO_COUNTERPARTIES
+    left_table: TRADES
+    right_table: COUNTERPARTIES
+    relationship_columns:
+      - left_column: CP_ID
+        right_column: CP_ID
+    relationship_type: many_to_one
+    join_type: inner
+
+  - name: TRADES_TO_SECURITIES
+    left_table: TRADES
+    right_table: SECURITIES
+    relationship_columns:
+      - left_column: ISIN
+        right_column: ISIN
+    relationship_type: many_to_one
+    join_type: inner
+
+  - name: EXCEPTIONS_TO_TRADES
+    left_table: EXCEPTIONS
+    right_table: TRADES
+    relationship_columns:
+      - left_column: TRADE_ID
+        right_column: TRADE_ID
+    relationship_type: many_to_one
+    join_type: inner
+
+  - name: SETTLEMENT_INSTRUCTIONS_TO_TRADES
+    left_table: SETTLEMENT_INSTRUCTIONS
+    right_table: TRADES
+    relationship_columns:
+      - left_column: TRADE_ID
+        right_column: TRADE_ID
+    relationship_type: many_to_one
+    join_type: inner

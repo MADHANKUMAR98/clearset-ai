@@ -2,9 +2,9 @@
 
 ## Overview
 
-This document specifies the architecture, semantic definitions, and validation procedures for the **ClearSet AI Cortex Analyst Semantic Layer**.
+This document specifies the architecture, semantic definitions, relationship graph, and validation procedures for the **ClearSet AI Cortex Analyst Semantic Layer**.
 
-The semantic model translates natural-language queries from post-trade operations analysts and desk managers into high-accuracy SQL statements evaluated directly against Snowflake data.
+The semantic model translates natural-language queries from post-trade operations analysts and desk managers into high-accuracy SQL statements evaluated directly against Snowflake structured data views and tables.
 
 ---
 
@@ -12,45 +12,67 @@ The semantic model translates natural-language queries from post-trade operation
 
 The semantic model is formally codified in [`snowflake/07_semantic_model.yaml`](file:///e:/coco-cli/clearset-ai/snowflake/07_semantic_model.yaml).
 
-### Logical Tables & Underlying Views
+### Logical Tables & Underlying Snowflake Objects
 
 | Logical Table | Underlying Snowflake Object | Business Purpose |
 | :--- | :--- | :--- |
 | **`exceptions_enriched`** | [`V_EXCEPTIONS_ENRICHED`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L9) | Main operational triage queue linking exceptions to trade economics, securities, counterparties, SSIs, and cutoff deadlines. |
 | **`counterparties`** | [`COUNTERPARTIES`](file:///e:/coco-cli/clearset-ai/snowflake/01_schema.sql#L13) | Master directory of trading firms, credit ratings, 30-day failure counts, historical fail rates, and escalation contacts. |
-| **`settlement_events`** | [`V_SETTLEMENT_EVENTS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L72) | Chronological audit trail of SWIFT messages (MT541, MT548, MT599, ISO 20022) and depository events. |
-| **`historical_cases`** | [`V_HISTORICAL_CASES`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L111) | Institutional playbook memory containing prior root causes, applied SOP rules, resolution steps, and CSDR penalties avoided. |
-| **`settlement_instructions`** | [`V_SSI_STATUS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L133) | Standing Settlement Instructions (SSI), depository participant IDs, and mismatch details. |
+| **`settlement_events`** | [`V_SETTLEMENT_EVENTS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L92) | Chronological audit trail of SWIFT messages (MT541, MT548, MT599, ISO 20022) and depository events. |
+| **`historical_cases`** | [`V_HISTORICAL_CASES`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L145) | Institutional playbook memory containing prior root causes, applied SOP rules, resolution steps, and CSDR penalties avoided. |
+| **`settlement_instructions`** | [`V_SSI_STATUS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L167) | Standing Settlement Instructions (SSI), depository participant IDs, safekeeping accounts, and mismatch details. |
 
 ---
 
-## 2. Business Dimensions & Measures
+## 2. Relationships Graph
+
+The logical tables are connected through foreign-key relationships defined in the YAML:
+
+```mermaid
+erDiagram
+    exceptions_enriched ||--o{ counterparties : "many_to_one (counterparty_id -> cp_id)"
+    exceptions_enriched ||--o{ settlement_events : "one_to_many (trade_id -> trade_id)"
+    exceptions_enriched ||--o| settlement_instructions : "one_to_one (trade_id -> trade_id)"
+    counterparties ||--o{ historical_cases : "one_to_many (cp_id -> counterparty_id)"
+```
+
+1. **`exception_to_counterparty`** (`exceptions_enriched.counterparty_id` $\rightarrow$ `counterparties.cp_id`): Many-to-One join enabling counterparty failure analysis from any exception.
+2. **`exception_to_settlement_events`** (`exceptions_enriched.trade_id` $\rightarrow$ `settlement_events.trade_id`): One-to-Many join for timeline reconstruction.
+3. **`counterparty_to_historical_cases`** (`counterparties.cp_id` $\rightarrow$ `historical_cases.counterparty_id`): One-to-Many join retrieving previous resolution playbooks for the same counterparty.
+4. **`exception_to_settlement_instructions`** (`exceptions_enriched.trade_id` $\rightarrow$ `settlement_instructions.trade_id`): One-to-One join detailing custodian BIC, depository subaccounts, and mismatch notes.
+
+---
+
+## 3. Business Dimensions & Measures
 
 ### Key Dimensions
-
-- **`exception_id` / `trade_id`**: Canonical operational identifiers (e.g. `EX-92831`, `TRD-92831`).
+- **`exception_id` / `trade_id`**: Operational identifiers (e.g. `EX-92831`, `TRD-92831`).
 - **`severity`**: Triage classifications (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`).
-- **`exception_status`**: Case status (`OPEN`, `INVESTIGATING`, `PENDING_APPROVAL`, `RESOLVED`).
+- **`exception_status`**: Case lifecycle state (`OPEN`, `INVESTIGATING`, `PENDING_APPROVAL`, `RESOLVED`).
 - **`exception_type`**: Root failure category (`Missing Instruction`, `Cash Discrepancy`, `Counterparty Fail Risk`).
 - **`ticker` / `security_name` / `asset_class`**: Instrument details (`AAPL`, `UST10Y`, `Equities`, `Fixed Income`).
 - **`depository`**: Central settlement venue (`DTC`, `Fedwire`, `Euroclear`).
-- **`counterparty_name` / `counterparty_id`**: Counterparty institution (`Apex Prime Clearing Ltd.`, `CP-192`).
-- **`ssi_status`**: Instruction state (`MISSING`, `MISMATCHED`, `PENDING`, `MATCHED`).
+- **`counterparty_name` / `counterparty_id`**: Trading firm (`Apex Prime Clearing Ltd.`, `CP-192`).
+- **`ssi_status`**: Instruction affirmation state (`MISSING`, `MISMATCHED`, `PENDING`, `MATCHED`).
+- **`credit_rating`**: Institutional credit rating (`A`, `AAA`, `AA+`).
+- **`message_type` / `event_status`**: SWIFT/depository event states (`SWIFT MT541`, `SWIFT MT548`, `SSI_NOT_FOUND`, `CRITICAL_RISK_FLAGGED`).
+- **`root_cause` / `applied_procedure`**: Historical failure rationale and standard operating procedure citation (e.g. `Settlement Exception SOP §3.2`).
 
 ### Key Measures & Metrics
-
 - **`risk_score`**: 0–100 explainable deterministic risk score calculated by ClearSet Risk Engine (`default_aggregation: max`).
-- **`trade_value`**: Gross notional trade amount in USD (`default_aggregation: sum`).
-- **`minutes_to_cutoff`**: Proximity in minutes to official market cutoff deadline (`default_aggregation: min`).
+- **`trade_value`**: Gross notional monetary value in USD (`default_aggregation: sum`).
+- **`minutes_to_cutoff`**: Minutes remaining until depository market cutoff deadline (`default_aggregation: min`).
 - **`prior_failures_30d`**: 30-day failure count for counterparty (`default_aggregation: sum`).
 - **`historical_fail_rate`**: Rolling 30-day fail percentage (e.g. `8.4%`, `default_aggregation: avg`).
-- **`csdr_penalty_avoided`**: Regulatory financial penalty avoided through expedited resolution (`default_aggregation: sum`).
+- **`avg_resolution_hours`**: Average turnaround hours to settle exceptions with this counterparty (`default_aggregation: avg`).
+- **`csdr_penalty_avoided`**: Regulatory CSDR cash penalties avoided in USD (`default_aggregation: sum`).
+- **`exception_count`**: Count of exception records (`default_aggregation: count`).
 
 ---
 
-## 3. Required Natural-Language Questions & Ground-Truth SQL
+## 4. Required Natural-Language Questions & Ground-Truth SQL
 
-Cortex Analyst maps user prompts to the following verified SQL queries:
+Cortex Analyst translates user prompts into the following verified SQL queries:
 
 ### Question 1: *"Show me critical settlement exceptions approaching cutoff."*
 ```sql
@@ -89,7 +111,7 @@ FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
 WHERE TRADE_ID = 'TRD-92831';
 ```
 **Expected Data Result:**
-- Trade value: `$2,400,000.00`
+- Trade value: `$2,400,000.00` (> $1M tier)
 - SSI status: `MISSING`
 - Counterparty: `Apex Prime Clearing Ltd.` (`CP-192`) with `7 prior failures` (8.4% fail rate)
 - Risk Score: `91/100` (`CRITICAL`)
@@ -110,7 +132,7 @@ WHERE TRADE_ID = 'TRD-92831'
 ORDER BY EVENT_TIMESTAMP ASC;
 ```
 **Expected Data Result:**
-- 5 chronological events from Trade Booking (`EVT-101`) to SSI Lookup (`EVT-102`), MT548 Exception (`EVT-103`), Cutoff Warning (`EVT-104`), and Risk Flagged (`EVT-105`).
+- 5 chronological events: Trade Booking (`EVT-101`) $\rightarrow$ SSI Lookup (`EVT-102`) $\rightarrow$ MT548 Exception (`EVT-103`) $\rightarrow$ Cutoff Warning (`EVT-104`) $\rightarrow$ Risk Flagged (`EVT-105`).
 
 ---
 
@@ -207,24 +229,45 @@ ORDER BY RISK_SCORE DESC;
 
 ---
 
-## 4. Snowflake Cortex Analyst Deployment Steps
+## 5. Snowflake Prerequisites & Account Setup
 
-When uploading the semantic model to Snowflake:
+To run Cortex Analyst against this semantic model:
+
+1. **Snowflake Edition & Region**:
+   - Cortex Analyst is supported on Enterprise Edition (or higher) in AWS and Azure commercial regions where Snowflake Cortex is available (e.g. `us-east-1`, `us-west-2`, `eu-west-1`).
+2. **Privileges & Roles**:
+   - `DATABASE CLEARSET_DB` and `SCHEMA CLEARSET_SCHEMA` with `USAGE` and `SELECT` on all views/tables.
+   - Stage `CLEARSET_POLICY_STAGE` (or dedicated internal stage) with `READ` access.
+   - Snowflake User/Service Account with Cortex Analyst execution role (`SNOWFLAKE.CORTEX_USER` database role or equivalent).
+3. **Stage Upload Location**:
+   - The YAML file must reside in an accessible Snowflake internal stage:
+     `@CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_POLICY_STAGE/07_semantic_model.yaml`
+
+---
+
+## 6. Manual Deployment Steps (No Auto-Deployment)
+
+When ready to deploy:
 
 1. **Upload YAML to Snowflake Internal Stage**:
    ```sql
    USE DATABASE CLEARSET_DB;
    USE SCHEMA CLEARSET_SCHEMA;
 
-   -- Upload 07_semantic_model.yaml to stage
-   PUT file://path/to/07_semantic_model.yaml @CLEARSET_POLICY_STAGE AUTO_COMPRESS=FALSE OVERWRITE=TRUE;
+   -- Upload 07_semantic_model.yaml to internal stage
+   PUT file://e:/coco-cli/clearset-ai/snowflake/07_semantic_model.yaml @CLEARSET_POLICY_STAGE AUTO_COMPRESS=FALSE OVERWRITE=TRUE;
    ```
 
-2. **Query via Cortex Analyst REST Endpoint (used by backend in Milestone 4)**:
+2. **Verify Stage File**:
+   ```sql
+   LIST @CLEARSET_POLICY_STAGE/07_semantic_model.yaml;
+   ```
+
+3. **Cortex Analyst REST API Request Sample**:
    ```http
    POST /api/v2/cortex/analyst/message
    Content-Type: application/json
-   Authorization: Bearer <token>
+   Authorization: Bearer <SNOWFLAKE_JWT_OR_TOKEN>
 
    {
      "messages": [
@@ -242,20 +285,18 @@ When uploading the semantic model to Snowflake:
    }
    ```
 
-3. **Execution Grounding**:
-   - The returned response contains the validated SQL and natural-language explanation.
-   - The backend proxy executes the SQL against Snowflake, returning evidence-grounded facts to the ClearSet Copilot and Investigation workspaces.
-
 ---
 
-## 5. Verification Matrix for Hero Trade `TRD-92831`
+## 7. Verification Matrix for Hero Trade `TRD-92831`
 
 | Dimension / Measure | Expected Value in Snowflake | Business Significance |
 | :--- | :--- | :--- |
-| **`TRADE_ID`** | `TRD-92831` | Primary showcase trade ticket. |
-| **`TRADE_VALUE`** | `$2,400,000.00 USD` | High-value threshold (> $1M) triggering Tier 1 escalation. |
-| **`TICKER` / `ISIN`** | `AAPL` (`US0378331005`) | NASDAQ equity settled at DTC. |
-| **`COUNTERPARTY`** | `Apex Prime Clearing Ltd.` (`CP-192`) | Chronic failure counterparty (8.4% fail rate, 7 fails). |
-| **`SSI_STATUS`** | `MISSING` | Depository participant 0244 missing cash affirmation subaccount. |
+| **`TRADE_ID`** | `TRD-92831` | Hero trade ticket under active triage. |
+| **`TRADE_VALUE`** | `$2,400,000.00 USD` | High-value trade exceeding $1,000,000 threshold. |
+| **`TICKER` / `ISIN`** | `AAPL` (`US0378331005`) | Depository: DTC equity. |
+| **`COUNTERPARTY`** | `Apex Prime Clearing Ltd.` (`CP-192`) | Chronic failure counterparty (8.4% fail rate, 7 fails in 30d). |
+| **`SSI_STATUS`** | `MISSING` | Missing depository affirmation subaccount. |
 | **`RISK_SCORE`** | `91 / 100` (`CRITICAL`) | Deterministic additive score (25 + 25 + 20 + 15 + 6). |
+| **`MINUTES_TO_CUTOFF`** | Dynamic / ~105 min | Approaching 15:30 EST DTC cutoff deadline. |
 | **`APPLIED_PROCEDURE`** | `Settlement Exception SOP §3.2` | Automated SWIFT MT599 repair + expedited desk phone call. |
+
