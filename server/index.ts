@@ -1,9 +1,18 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { snowflakeClient } from './snowflakeClient.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
+
+import { snowflakeClient } from './snowflakeClient.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -108,8 +117,28 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
+process.on('uncaughtException', (err) => {
+  console.error('[ClearSet Backend] Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[ClearSet Backend] Unhandled rejection:', reason);
+});
+
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`[ClearSet Backend] Server running on http://localhost:${PORT}`);
   console.log(`[ClearSet Backend] Snowflake Configured: ${snowflakeClient.isConfigured() ? 'YES' : 'NO (Local Fallback Active)'}`);
+});
+
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`[ClearSet Backend] Port ${PORT} is already in use.`);
+    console.error(`[ClearSet Backend] Either use the existing process, or free the port with:`);
+    console.error(`  netstat -ano | findstr :${PORT}`);
+    console.error(`  Stop-Process -Id <PID> -Force`);
+  } else {
+    console.error('[ClearSet Backend] Failed to start:', err);
+  }
+  process.exit(1);
 });

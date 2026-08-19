@@ -8,9 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "server": "npm run dev --prefix server",
-    "server:build": "npm run build --prefix server",
-    "server:start": "npm run start --prefix server"
+    "server": "node server/dist/index.js",
+    "server:dev": "node server/dist/index.js",
+    "server:build": "tsc -p server/tsconfig.json",
+    "server:start": "node server/dist/index.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
