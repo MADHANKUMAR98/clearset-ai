@@ -22,6 +22,19 @@ export interface SnowflakeConfig {
   role?: string;
 }
 
+export interface SnowflakeDiagnosticResult<T = Record<string, unknown>> {
+  success: boolean;
+  data?: T[];
+  error?: string;
+  timings: {
+    connectionStartedAt: string;
+    connectionSucceededAt?: string;
+    queryStartedAt?: string;
+    queryCompletedAt?: string;
+    elapsedMs: number;
+  };
+}
+
 export class SnowflakeClient {
   private config: SnowflakeConfig;
 
@@ -60,6 +73,19 @@ export class SnowflakeClient {
       warehouse: this.config.warehouse,
       role: this.config.role,
       configured: this.isConfigured(),
+    };
+  }
+
+  /** Temporary diagnostic-only configuration view. Never includes the password. */
+  public getDiagnosticEnvironment() {
+    return {
+      SNOWFLAKE_ACCOUNT: this.config.account || 'NOT_SET',
+      SNOWFLAKE_USER: this.config.username || 'NOT_SET',
+      SNOWFLAKE_DATABASE: this.config.database || 'NOT_SET',
+      SNOWFLAKE_SCHEMA: this.config.schema || 'NOT_SET',
+      SNOWFLAKE_WAREHOUSE: this.config.warehouse || 'NOT_SET',
+      SNOWFLAKE_ROLE: this.config.role || 'NOT_SET',
+      SNOWFLAKE_PASSWORD_PRESENT: Boolean(this.config.password),
     };
   }
 
@@ -110,6 +136,79 @@ export class SnowflakeClient {
             }
 
             resolve((rows || []) as T[]);
+          },
+        });
+      });
+    });
+  }
+
+  /**
+   * TEMPORARY: runs one minimal diagnostic query with phase timing and a hard
+   * client-side timeout. It is intentionally separate from production calls.
+   */
+  public executeDiagnosticStatement<T = Record<string, unknown>>(
+    sqlText: string,
+    timeoutMs = 15_000,
+  ): Promise<SnowflakeDiagnosticResult<T>> {
+    const startedAt = Date.now();
+    const timings: SnowflakeDiagnosticResult<T>['timings'] = {
+      connectionStartedAt: new Date(startedAt).toISOString(),
+      elapsedMs: 0,
+    };
+
+    const completeTimings = () => {
+      timings.elapsedMs = Date.now() - startedAt;
+    };
+
+    return new Promise((resolve) => {
+      if (!this.isConfigured()) {
+        completeTimings();
+        resolve({ success: false, error: 'Snowflake credentials are not configured.', timings });
+        return;
+      }
+
+      const connection = this.createConnection();
+      let finished = false;
+      let phase: 'connection' | 'query' = 'connection';
+
+      const finish = (result: Omit<SnowflakeDiagnosticResult<T>, 'timings'>) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        completeTimings();
+        connection.destroy(() => undefined);
+        console.log(`[Snowflake diagnostic] ${result.success ? 'completed' : 'failed'} after ${timings.elapsedMs}ms`);
+        resolve({ ...result, timings });
+      };
+
+      const timeout = setTimeout(() => {
+        finish({
+          success: false,
+          error: `Timed out during ${phase} after ${timeoutMs}ms.`,
+        });
+      }, timeoutMs);
+
+      console.log(`[Snowflake diagnostic] connection started at ${timings.connectionStartedAt}`);
+      connection.connect((connectErr) => {
+        if (connectErr) {
+          finish({ success: false, error: `Connection error: ${connectErr.message}` });
+          return;
+        }
+
+        timings.connectionSucceededAt = new Date().toISOString();
+        timings.queryStartedAt = new Date().toISOString();
+        phase = 'query';
+        console.log(`[Snowflake diagnostic] connection succeeded; query started at ${timings.queryStartedAt}`);
+
+        connection.execute({
+          sqlText,
+          complete: (queryErr, _statement, rows) => {
+            timings.queryCompletedAt = new Date().toISOString();
+            if (queryErr) {
+              finish({ success: false, error: `Query error: ${queryErr.message}` });
+              return;
+            }
+            finish({ success: true, data: (rows || []) as T[] });
           },
         });
       });

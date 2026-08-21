@@ -1,0 +1,219 @@
+00:00:18
+ [music] [music] [music] [music] D. [music] first folks is that I would first like to take you across. How do we get started with snowflake? Right? Uh because that's the step number one. So you would have to come in. Uh what snowflake is? Snowflake is a SAS platform. uh it is data AI first kind of a platform where you can bring in your data and your AI can sit right on top of it very near to your context very near to where you have the grounded truth right against your agents absolutely governed you do not have to worry about
+
+00:02:05
+ who is looking at your data when you are accessing it with agents and that's What is the biggest plus point here? Once we understand what snowflake is, what we would do is how do we get started? These are some basic points which I definitely would like to uh take away from before I log into all the boring tech stuff and then of course I'll show you a demo. Yeah. So, uh what we do is we go to sign up.nowflake.com and we get started by clicking on this. You would get to a screen which looks
+
+00:02:40
+ something of this sort. You have got something which is two ways out here if you can see. So cortex code uh what is cocoa? I mean we are going to talk a lot of it about cocoa cortex code cortex code and a couple of other things but I would definitely like to tell you what is this cocoa and what is this cortex. So anything which is related with AI on snowflake is called as cortex. And when we can code with Cortex, it is called Cortex code. As simple as that. And because we loved the name Coco so much.
+
+00:03:16
+ So now Cortex code has been shortened to Coco. That's it. So that's Coco for you. And we have got this one uh item which is AI data cloud. You can of course fill in your as I have already done. You can just fill in your name, your last name, your email ID and sign up. After you click on this continue which I have not done but you can do is that you would have to choose your cloud your addition which could be enterprise edition or a business critical edition or a standard edition and then you can just choose
+
+00:03:50
+ which area or which region you want to go ahead with. That's it. Click on continue. You would get an email into your whichever email id you have given here which is a work email id and it would trigger an email to that particular email id on which you can click and you can get redirected to the snowflake login. So as simple as it gets. There is another option which is you can just get cocoa which is cortex code only for yourself as a developer because we have not built cortex code just for snowflake uh in you know
+
+00:04:30
+ snowflake data and snowflake intelligence. We have actually made uh koko to be aware as a one coding agent. So you can code on cocoa with snowflake, dbt, airflow, spark, glue or postgrade. You can also have accelerated end toend development and this is absolutely open and production ready and extensible. uh because we have got MCP connectors, we have got skills which you can bring in and of course uh all of this added into the conundrum of very good context against your data gives you very good
+
+00:05:12
+ results, high accuracy results and that is what matters to us at the end of the day. Right? So if you come here and you go in into the Koko for developers, you can go ahead and give given your first name, last name, email just like in the previous thing and do a sign up. You can still go ahead and use Koko. Here you see there are two things which are coming up. One is whe you can get a CLI and second is you can also get a desktop. So today we will talk both about CLI and desktop and I'll show you
+
+00:05:46
+ both even though the session says Koko CLI. So what we will do is we can check on both and that is what is the entire agenda of this particular discussion that we are going to have today. So I hope all of you are with me at least you have tried logging in into signup.nowflake.com and you have started your journey with all of us. Some of you are already with snowflake and those who are new to it, you can definitely try this and uh get yourselves ready. It takes about 5 minutes. So I'm just elongating by
+
+00:06:23
+ conversing with you so that you get a chance of getting this account ready. Yeah. So what I'll do next is I'll just go ahead and talk everything theory so that you get an opportunity of getting the uh koko started. Right. So we'll go to the slideshow where I'll show you what does it mean and of course there are some disclaimers and everything but yes some of the largest uh some of the largest problems or adoption problems or issues uh which we face today with AI even though as you can see here all
+
+00:07:01
+ these numbers that you're seeing here where there is a large amount of developer adoption and impact of AI Because 92% of developers use AI tools today. Who has not tried their hands on a GPT or a claw or a Gemini at least even our parents do? I mean no no offenses but then this is where our world is walking towards right. AI has made access to data, information and honestly very very necessary data easier for us to obtain. Professional developers are using AI tools daily which is greater than 51% of course we
+
+00:07:45
+ also code we test and do a lot of other things. 60% and above have developers actively using code tools and 83% and above do it for software development. Of course we do it right. So but but what happens here is that even though those numbers look so good but these current tools have got a lot of complexity or a lot of challenges which we still need to solve for. For example, if the coding tasks become really complex where the transformations, pipelines and a lot of data agents come into place, there are a
+
+00:08:25
+ lot of connectors and then there are decisions to be made like how do we access the data, what should be the format etc. There comes the complexity. The second thing is when the context which you have built on top of your data, your data the understanding to it, the dictionary to it, the the ontology to it, the encyclopedia to it when it stops with your repo where you have the data code or something then this is a major major challenge. So you should have your context always available so that you can make the right decisions.
+
+00:09:01
+ The third one is that you it is also not given that you do not have the right governance engines on top of it, the right roles and accesses on top of it and your data should not move. What should move is uh your AI comes nearer to the data. It should always be on a secure environment and the context has to be something which you clo build closer to it for more groundedness. avoid hallucination basically, right? Okay. So, what did we do? We did what a data team should do. What we did was uh for for us where we believe that data
+
+00:09:42
+ has gravity and there is no AI strategy without a good data strategy. What we did was we brought in the right tool. We understand Snowflake and of course a couple of other languages also like React, like Node. We understand containers. We understand how uh applications are deployed and that is why all those four topics right where you are going to build your applications with this hackathon right so we understand all of this thing we know that how we can be context aware that is it adds to relevance of the data we can
+
+00:10:17
+ automate for complex task because we are efficient on top of it we understand warehouses how do we bring in compute pool whether they are CPUs or GPUs and how much amount amount of uh you know data complexity processing needs what kind of power. So all of that configuration being available to us, all of that compute power being available on the engine, uh we also know because security is one of the most important norms and nuances, we also believe that it has to be secure by design and that is where role based access control,
+
+00:10:53
+ governance layers from the first horizon context are all a part of snowflake from the go, Right. So here comes the beautiful part of it. I hope all of you have now done a sign up on snowflake.com. You have got your accounts ready. You are now ready for us to jump in as soon as I get get to the place. Right. Okay. [snorts] Now what is this cortis? So this is one of the most important slide guys. Please concentrate. So this is agentic cla. What does it look like? It looks something like this. the small penguin
+
+00:11:30
+ peacock whichever way you want to call it. It it works from VS Code Kger. It works with MCP. It works as individual CLI. It works also on desktop which I will show you in a while. It accelerates the speed of building and deploying applications agents. It understands and handles the snowflake compute and governance and it also takes advantage of specialized skills. So skills is something which is very very important for us to you know automate some of the processes to build something so that we can you know redo the same cycle again
+
+00:12:02
+ and again. So if uh people are here who do not understand the word called skill or the word called CLI then I I'll just take a pause and try to explain this nothing but just consider that CLI is a terminal folks and what we are doing here is that we are just accessing a particular database or a particular uh setup of a pipeline or a uh container with the help of a terminal. Okay. So that's about CLI and when we come to um what is the meaning of uh uh you know a skill then skill is very simplistically
+
+00:12:42
+ it's not exactly that way but very simplistically it is kind of a function or a package where you have put in a lot of functions within the same so it can solve for a type or a kind of problem again and again okay please don't judge me I was just trying to simplify okay uh the Next thing is skills add to the repository. You can add to the repository. You can build solutions from top of it. And uh you can solve for multiple things, right? You can build an agent. You can Okay. So what you can
+
+00:13:14
+ solve for? So we'll go one by one. You can do a data discovery which we will see like what you can do is you can find out all your catalog tables. You can find out your data. You can understand your semantics from your uh anywhere where your data resides. It could be iceberg tables also. Okay. It could be snowflake tables. It could be something which is external to snowflake and you are just trying to build your context on top of it. It can also do admin task. So any kind of users permissions. Uh okay
+
+00:13:50
+ can you give a resource monitor? So something which is a cost control or let us say who has got the so any kind of permission which you need any kind of privilege that you want to give as part of the governance any kind of role which you want to define all of that can also be done with admin task. Next is data engineering. Very very important part of the pipeline. Anything which flows in is very important for us to manage because we have to ensure that the systems are continuous. Right? We have to ensure
+
+00:14:22
+ that whatever was the source sum remains on the destination sum also and all the data has flown in. There should not be any data which gets dropped. So data quality kind of things optimization of pipelines whether built on dbt for transmissions or for running on airflow any of these aspects can also be done on top of cortex code. We can also build oh my god AI with agents on top of it. Why uh and how? Because it understands the context. It can very quickly help you in building u your semantic models which
+
+00:15:01
+ work as input as tools to your agents which take up an input that is a natural language. For example, you asked a natural language question. It says what was my total sales last quarter? So this is a natural language question, right? So this will take this input process it with an LLM understand that this would need this kind of data and I mean process that data and give you an output. So all of that on one stop shop solution. You can also build ML and data science. So all the data scientists out
+
+00:15:40
+ there please think of a very complex situation which we still need to solve in the world. What we can do is we can if there is a churn propensity analysis or there is a forecasting analysis which we need to do where you can build entire ML pipelines. So whether it is feature views of course it can also be done on top of snowflake. So if you want to build a feature on top of your dimensions metrics on top of your table data go for it. If you want to register your model, yes, we have got model registry. We have something which is
+
+00:16:15
+ called as snowflake.ml which gives you the entire set of packages which can now help you in doing complete machine learning, complete MLOps right on top of your data within snowflake, right? You can also do something like um uh process it with the help of notebooks. Makes your life easier and I honestly appreciate notebooks a lot myself. You can also do visualizations by converting your you know uh data frames which you have already built. Uh you can do uh you can just do two pandas and build very
+
+00:16:55
+ beautiful graphs, charts and all of that with some of the other packages which are great packages for showing results. So all of that right on top of the snowflake environment you have got advanced analytics where you can do processing with Python and SQL generation of course BI and apps streamlit is a beautiful solution we will see that when we go to the demo code migration and refactoring when we talk about code and we do not talk about migration and refactoring with the help of AI this is a crime so we can refactor
+
+00:17:28
+ we can convert code and we can also process all of that with the help of uh AI and with the help of Koko, right? So what is it? Why should I do it on Cortex code? Why should I uh use it? And how is it better? Is the B agentic CLI for data? What is the benchmark? Of course, we have also done this of many of you would have already used clot code. Some of you would have been listening to this and would have been thinking okay I have done this. I have seen this in claw code. What is new? What is it that is
+
+00:18:03
+ coming up? So here comes the ADE bench results where we are showing that 65% of the code the accuracy the benchmark results are showing 15.7% higher score when compared to cloud code. Um cortex code is more efficient when it comes to targeted results versus exhaustive results. And second is when your approach is SQL native there the cortex code definitely shines. The third place where snowflake cocoa also shines is governance and role based access control which is something which is proving very very necessary in today's
+
+00:18:46
+ surface of attack because it is increasing because of AI bots. So all of that makes it a very efficient solution for all of us to follow. uh Cortex Core CLI has a very strong momentum. A lot of our customers and these are all true names, true uh um you know u true people talking here who are who have seen a change. There are 3,300 plus monthly active users who are using Cortex code today. In fact, this would have definitely increased. There are 900 Oh, this is definitely old uh value. there are 1,700 plus active accounts
+
+00:19:25
+ which are currently using Cortex code. In India itself there are um 350 odd accounts out of which 190 or so are already using Cortex code. So that's the momentum that's that's how it is. So all the names that you see here I'm sure you would have seen the whoop band on uh Virat Kohi's wrist. Uh so that that is being powered by cortex code. Of course whoever works or whoever has learned about densu or uh lending tree you know about how agentic AI is helping with their uh governance with their pace of
+
+00:20:06
+ AI growth and with their data context. Snow on snow. Oh yes we we bake the cake and we eat it too. So this is one of the examples how we do it. We have 10x faster resolution. Don't I I mean I have I'm telling from my own personal experience. We have built chat ports which are so efficient using multiple APIs and uh MCP connectors throughout snowflake itself. Uh what we have done is now you can ask a question and it gives you a answer which is which is efficient. And I mean I would have written that answer in at least a four
+
+00:20:46
+ to 5 hours kind of a duration but in 4 minutes it's done. So that is the kind of efficiency that we are seeing that is the kind of productivity that we are seeing with these tools in place and snow and snow is a huge example and a testimonial of what we are doing today and what we are using today. So we use it for context. We need it for intelligence and we of course have thousands of engineers who are using it today. Everyone in snowflake uses it across for cortex code. So here comes the most exciting part folks. I will go
+
+00:21:22
+ into the uh documentation part of it once just for you uh just for all of us to see that how we are going to install the same. You have got the snowflake um trial account. After that what you would need to do is you would have to install cortex code by going into a terminal. So terminal would be looking something of this sort. This is a Mac machine folks. Okay. This is a Mac machine which I have opened. This is my profile. This is my terminal. I have not done anything which is complex here. I have just done
+
+00:21:56
+ terminal. If in case you are on a Windows machine, I think it is ping or something. I have forgotten now. But on Windows machine, you can also go to your CS prompt or you can also go to terminal or uh uh something of that sort and you can uh you can open that and you can just uh put in the Windows command there. Okay. So what what happens here is I'm just going to copy because this is a Mac machine. I'll go ahead and copy the Mac or the Linux uh uh uh command which is the curl command. You can just do a copy
+
+00:22:35
+ from here and you can run it. Uh okay. If in case it is a Windows machine then I would request you to go ahead with this IRM which is the PowerShell command. You can copy it from here and you can run this. This is the executable command. Once you execute it what will happen is although I have already deployed it okay because I am a firstirhand user of it. Don't judge me. Um but once you have done this uh run this shell script what happens is it will start um installing a couple of packages. Okay. So let it run. It'll
+
+00:23:14
+ take about a minute or two. Just give it a minute or two. I'll continue speaking by till that time. Okay. Don't worry. I'm not going anywhere. So you can just run this and what we will do is um once you have run them what will happen at the end of it is you will get some prompts. What will your prompts look like? Your prompts will look something like um what is the how do you want this to look like? Should it be a dark mode? Should it be a light mode? Etc. Okay. So you choose whichever mode you want a dark
+
+00:23:51
+ mode, a light mode whichever. So that is where your cortex almost installation is done. Then it will go in into a particular phase where it will say that okay now your connection or your setup is complete. Now what do you want to do? Okay. So this is where once you have set up all of this and you are good to go, you will type cortex. This is not the end of it. what we will have to set up. Okay, suppose you have I mean because I had already got this installed so it is installing an update but for you it
+
+00:24:26
+ would just uh install it completely. Okay, so let us give it a minute. Now once the cortex has started you would see that my cortex is already linked with my snowflake account. Okay, my user ID, my password, my uh PAT which is personal access token, all of that I have already added it to my own account. But for you, you would have to add it. Okay, I hope all of you are with me. You will have to add your Snowflake account ID, your Snowflake account password and your uh programmatic access token. Or if
+
+00:25:07
+ you want to do it with oath, you can very easily do it with desktop also. Okay, no problem. So I'll just show one more about the desktop. One second. Let it let it come up and let this installation also go ahead. Okay. So now coming back to the documentation. So you have uh once you have done that and once you have done the setup you can do more options. Yes. One very important thing which is for all of us is that your connections I told you right that you would need the snowflake connection name you would need
+
+00:25:44
+ the account ID the password the pat token ID and all of that that is given in snowflake connections DML okay you can also search for this file after you have done a cortex kind of a run so on the terminal you have to run cortex just like I did here. I hope you can see my screen. I'll just increase it. I just did a cortex and it is it started running my update for you. This will be a installation which it is doing. Okay. Now I got my I think it's a penguin. I got my penguin. So it is asking me for a
+
+00:26:23
+ credential update. So I'll just show you that how we do it. Uh I mean this is snowflake setup. Give me a second. I'm just connecting to my VPN to get the access through. Log into my password. Okay, I am good to go. I have got this. I have now logged in and my terminal should work now. Okay, good. So as I told you I have already uh input my uh my account ID my password my path token everything into the uh 2ML2ML file connections file right and now I am at a place where I can connect with my um
+
+00:28:09
+ cortex. So now here comes the actual action. So once you have reached this place once you have validated now you have set it up you already have the entire setup for the cortex code terminal right okay my desktop also decided to come up folks very nice very good time when it comes up so what we will do is we will see how the desktop works so this is our cortex code desktop if you see here this is the shiny line so I told you there are two surfaces I mean there are three surfaces actually but there are two one which is the CLI
+
+00:28:47
+ which you see here here whoever is uh whoever is comfortable with the CLI option please go ahead and please use the CLI option right what I can do with cortex code you can just simply once you have set it up you can go back and you can just ask this question what I can do with cortex code okay and you are good to go and here goes your question your answer This is a very very basic question folks. Those who have already done a couple of AI agents, you'll be thinking that what is Sarita doing. But
+
+00:29:20
+ yeah, that is what my job is for today at least. So now uh this cortex code and this is the cortex code uh desktop version. You can just download it as a DMG file and it'll come to your downloads folder and then you can just uh double click on it. It'll work like a application and it'll sit on your desktop and very very easy to go. For example, here there is a playground. You can ask a similar question. What I can do with cortex code or if in case we will come to create a skill and I want
+
+00:29:55
+ to use this at that point in time. If you want to create a skill, you can click on create a skill and tell it what is the skill that you want to use it for. And here there is a beautiful pattern which you can see from the desktop. itself whether it is an agent or whether you want to plan something. So I strongly recommend plan activities to be done at a high-end LLM. Whereas if it is an execution of a simple SQL file or something of that sort just to do some you know costsaving you can go for a lower model. What are the models? I
+
+00:30:32
+ told you that we are a model garden and we follow model garden approach. As soon as one model is available outside in the market, it is right away available on top of Snowflake. As you can see here, I've got high-end models like Opus 4.8 uh two Sony 5 to uh GPT 5.4. All of that is readily available to you. Now you can choose your own LLM instead of poison. Right? So this is where we have and you can ask a question. This is a very good view. So I just wanted to show you here you can do automations
+
+00:31:09
+ here. You can ask add a task and you can send your emails from here or you can build applications and you can run all of them build an app. So those guys who are choosing the third one right creation of native app and all of that just go ahead and try this. Okay. And then let us say you want to see your file explorer, your database, your data explorer. You can very easily see it from here. Let us say you want to see the browser here. Like you built a um local deployment of a file. Let us say it is a 8080 kind of a portal and you
+
+00:31:49
+ your URL has to open right on top of your system. Then you can open the URL here. Let us say you want to execute a SQL. You can execute the same here. The terminal also works and shows up here. All kinds of connectors, branches, any kind of changes for the GitHub and the location. Any kind of export, import of a session can also be done from here. There are a couple of settings. I just want to very quickly touch on settings folks. Uh CLI is a different beast. uh here desktop is a little different uh
+
+00:32:24
+ beast. So I just wanted to show you if in case you want to uh code uh on top of desktop you can go for you know if you want any hooks you can go for hooks. If you want any MCP servers you can build a MCP server from here by doing a new you can set up rules you can set up indexing and of course skills. Okay, you can add skills, you can bring in package skills, you can bring in skills from your local system. Okay, you can try all of the skill all of these things. I already told you if you want to build a new
+
+00:33:01
+ skill, you can create a skill here. You can build the app here. I'll pause here because we have to do it the Cortex code way. But I just wanted to show you the entire desktop approach also just to give you a fair chance of trying it out. and winning it easy. Okay. So now coming to the CLI version again. All right. So what we have is I already asked the question. So till now what we saw is CLI is up. I have given the user ID password. I am seeing my agent connection here. I'm seeing my SQL
+
+00:33:37
+ connection here. Warehouse is not a mandatory thing. The model is set to auto. So as I told you on the desktop version what were the models which are running under the hood you can also choose your model. Okay now what can I do with cortex code it is asking I asked this question it says you do code file operations snowflake SQL you can do skills uh you know skills you can build key shortcuts etc. Now I'll just show you two very important parts of it. Okay. One um what if I just what if I just want some example queries to be run
+
+00:34:17
+ like for example I want to understand all my table data. I want to understand or build a application on top of uh CLI. How do I do that? Very easy. I'm just following the documentation guys. I'm just doing it blindly so that all of us are starting from the same point. But I'm sure all of you are smart and you would definitely fly high without even depending upon me. But yes, we are short in time. I really want to use this. So this is something which we are looking for, right? This is what I
+
+00:34:51
+ just wanted to show you folks. Okay, I'm getting some issue here. Okay. If in case you get such issues, okay, like uh my database is not working or there are there is a compilation error, there is no object domain, there is nothing of that sort, right? Then you ask just copy this. Okay. Okay. Solve this problem for me. Solve this problem for me. Okay. You can you can I mean this is a this is an ongoing conversation which is already happening with Cortex code. Maybe it'll take my uh may take my prompt or not. But this is a
+
+00:35:28
+ selfhealing approach. Never forget earlier when we had issues we had to go check on our Google systems or we had to check on Reddit or we had to get those issues out of the box uh through some cases some support channel etc. Now you can ask for this particular error here itself to cortex code. It will tell you what is the error, what is the expectation, what is the problem that it is facing at this particular end. Right? So this is what is changing the entire game. Correct? So this is what is happy
+
+00:36:06
+ thing for a developer. Anyways, this is a huge query that I have run. Now if I would have run it for a sample database, maybe this would have taken faster. But what it basically does is it lists every table where PI is equal to true and it is showing the lineage from raw DB or dot orders to downstream dashboards. So this is this is something which you can do. You can build a catalog. That is what was the entire idea. I'm sure you got the drift of it. You got the point. Yes. So I have built the lineage. Oh my
+
+00:36:41
+ god. This lineage if it would have been built manually this would have taken at least a month but here it is all the databases all applications all tables with PII lineage on raw DB orders everything out with one with queries on top of it right so this is one example you can also work by building agents on top of it you can generate and run SQL queries by by saying that what are the top 10 customers. I'll just increase this also so that you can see write a query with top 10 customers by revenue.
+
+00:37:22
+ So that's that's also something possible. Add 7-day moving average build application. So let's try this. Yeah, let's try this. Let's do this. Let's see if we get the stream lit app right because this is a very important part of the hackathon folks those who are new to hackathons I would I do a few suggestions from my past experiences as I told you okay build choose a right topic build the right solution write a complete solution is like we used to call that as PRD or HLD or LLD
+
+00:38:06
+ You build the solution. Of course, coding is a very important part of the solution. Of course, it is. But along with that, you also have to present your solution in a very lucid fashion, very solid presentation with the entire team getting involved. If you are a individual, then that's a different story. You are the master of all. But if it is a team then all of you should show that you are all a part of the same uh you know team and you're doing it as a team. So all of these are things which
+
+00:38:39
+ will help you in winning over. If you really want to do a let us say a setup uh kind of a thing then you can always go with it. You can distribute the work and get the job done. Okay. So now it is asking me it has planned it. So as you see here it has planned it has understood that okay these are the things that wait a second where was that okay here before building it is actually doing a planning of it. It is understanding what is the table catalog where it has to go ahead and do this particular setup uh sales and revenue
+
+00:39:13
+ table does not exist in the account. Oh my god. So it cannot do it either it will create the sample data or it will wait uh for me to give it an option. Okay, one very important thing I should not forget to tell you. See, there are multiple modes here. Okay, one is the plan mode. You saw it on the desktop because it was very very prevalent. The same thing is also available on CLI. If you see here, right? Uh I can't I can't take this away. Okay, I can't take this away. Okay, you see here, right? The
+
+00:39:46
+ plan mode is on or off. You can this is how it works. Or it can also be let me let me just so and you can also choose whether you want to go with all yess or you want to give it um give it all the uh you know confirm all the actions automatically or you want to cue something or if your team mode is on or off. So all of that is something which is possible for you to do from the snowflake snow code uh CLI. Also you can connect to the MCP connectors. Don't go by these error messages. Okay? Don't go
+
+00:40:23
+ by them. This is just a demo. Don't judge it by what you're seeing here. I may not have all the setup here. Okay? So you can just you can just go ahead and do a complete skill development. Okay? That is one very important thing which I must tell you. Uh either either we do it in that fashion or we do it on the desktop. Whichever way you like. Let us say it is skills. Okay. Okay. Let us say I would like to show you what are the number of skills that we have. By now I have opened the VS code.
+
+00:41:17
+ Okay. So as as as I was telling you this is one important aspect and I do not want to miss this because of lack of time because we are just 10 minutes away. Okay. It is asking me to fix this tab. Okay, this uh okay list terminal. Yeah, skills you can see here if there are any specific skills that we can list out. I'll just do a control C of this one because I that is more important for us to see. Yeah. So you can you can see that I can I can get the skills from my own system or I can also build skills, right? I can build skill
+
+00:41:56
+ like there is a skill called architect and you can see that there is the description of that particular skill. There is a description of anything uh if you want to work with iceberg then those skills the if you want to work with lineage then those related skill all of them are there. Now comes the second part of it right. How do I create a skill? So you can just say create a skill for the best practices on NodeJS. Let us say something of this sort. If you if in case you want to build in the best practices for NodeJS because you
+
+00:42:39
+ are building an application. I'm just telling you an example. No need of doing this or applying this if you are not into it. But let us say you want you are you want to code an entire application and you want to code it on streamllet or you want to code it on NodeJS and you want to have the best practices in place instead of NodeJS let us say I just want to say streamllet because that is something which is which will be most probably a little bit easier. So you can just tell cortex code to build a skill
+
+00:43:11
+ or let us say you want to list out all the skills you can just say /kill or you can also say list out all the skills for me. So you can just talk to it just avoid hello please and thank you. Uh that's not required. Okay. So you can you can just build a skill of this sort and give it some time. It'll start building it for you. Okay. It'll tell you what is the plan of execution. It'll tell you how does it want to go ahead with. It'll tell you uh how many other streamllet or other things are there for
+
+00:43:42
+ you to build up and it'll just start doing it. I think I canled this. Anyways, uh coming to the desktop piece of it, you can also create a skill from here. This is much cleaner and much straightforward. I know that there is a third uh thing also. I just wanted to show you that for example this is my own account. Okay. Okay, there are a few things which I just wanted to show you that's why we are here. Um, what was that? It was okay. You can also have this uh you know uh the entire setup of uh cocoa or
+
+00:44:50
+ cortex code right on top of your snowflake. So this particular UI that you see on snowite is called as snowite. Snowflake is called a snowite. You can also come here. There's a little tiny blue button with a star. You can just click on it and you can just get started. So my teams usually use this uh for performance tuning for building things for writing and debugging their entire pipelines or research something or in case they have to build an application end to end thorough uh then they go to the CLI or the desktop
+
+00:45:27
+ nowadays but yeah definitely you can this is a very good one-stop uh solution which you can also explore in the short and long term. So this is where everything comes in. Uh your snowflake snow site would look like this. You you h you you can build agents and you can check your agents from this particular tab. Once you have built them, you can build your analyst or semantic views right from on top of your data with the help of the snowflake cocoa or the cortex code. So think of it and you can you can do any kind of solutioning
+
+00:46:03
+ whether it is data engineering, pipeline building, transformation, a machine learning, notebook, uh writing with a particular use case in mind, streamlit coding where you can bring something of this sort. I I will show you a streamlit app uh where you can you can build very easily. So this is one of the apps which I built for a conference uh called machine learning developer summit. So you can build very beautiful dashboards from streamlit with the help of cortex code. You can build agents uh on top of your data set. You can also
+
+00:46:42
+ build applications on top of it. So this is how streamllet would look like. So you can you can just uh you can just think about what is the solution you want to do and you can bring it to life and you can code accordingly. So there are 5 minutes more to go. I showed you three surfaces. One is this little blue button called cocoa on snowite. The second is the uh CLI where uh there were a couple of things which we could do. There are a couple of things uh which I killed and then there is this uh cortex code desktop where it where you
+
+00:47:21
+ can do a lot of things connecting including connecting with MCP connectors hooks and a couple of things of course you can also connect MCP connector from CLI also folks you can also do it from cocoon no site just that here it is a little straightforward that's the only difference right uh don't take that All three are different. They're exactly the same. Just that here it is a little straightforward on desktop. Okay. Now having said that and I I hope this was a good um surface area that I have covered
+
+00:47:55
+ today as a start point for the hackathon. Uh what we will do is um what we will do is we will now go in into something where we will see if we have any other slides to go. Okay. So we are on time and this is my thank you for you. I'll take a pause here.
+

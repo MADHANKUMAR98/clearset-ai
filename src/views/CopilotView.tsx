@@ -14,7 +14,8 @@ export const CopilotView: React.FC = () => {
     copilotMessages, 
     sendCopilotMessage, 
     selectExceptionForInvestigation, 
-    setActiveTab
+    setActiveTab,
+    backendMode,
   } = useApp();
 
   const [inputPrompt, setInputPrompt] = useState('');
@@ -66,8 +67,16 @@ export const CopilotView: React.FC = () => {
         </div>
 
         <div className="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-300 bg-[#162032] px-3 py-1.5 rounded-lg border border-slate-700">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span>Local Simulation · Cortex-Ready</span>
+          <span className={`w-2 h-2 rounded-full ${
+            backendMode === 'live' ? 'bg-emerald-400' : backendMode === 'checking' ? 'bg-yellow-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
+          }`} />
+          <span>
+            {backendMode === 'live'
+              ? 'Live Snowflake · Cortex Analyst Active'
+              : backendMode === 'checking'
+              ? 'Checking Connection...'
+              : 'Local Simulation · Cortex-Ready'}
+          </span>
         </div>
       </div>
 

@@ -11,6 +11,7 @@ import {
   COUNTERPARTIES 
 } from '../data/syntheticData';
 import { POLICY_DOCUMENTS } from '../data/knowledgeBase';
+import { fetchCortexSearch, fetchCortexAnalyst } from './apiClient';
 
 const INVESTIGATION_STEPS_TEMPLATE: Omit<InvestigationStep, 'status' | 'logs'>[] = [
   {
@@ -355,4 +356,131 @@ export class LocalCortexService implements ICortexService {
   }
 }
 
-export const cortexService: ICortexService = new LocalCortexService();
+// ============================================================================
+// HybridCortexService
+// Wraps LocalCortexService. For queryCopilot, tries Cortex Analyst (REST).
+// For executeStep(6) [policy retrieval], tries Cortex Search.
+// Falls back to LocalCortexService on any error or unavailability.
+// The existing LocalCortexService is never deleted or rewritten.
+// ============================================================================
+class HybridCortexService implements ICortexService {
+  private local: LocalCortexService;
+
+  constructor(local: LocalCortexService) {
+    this.local = local;
+  }
+
+  public getInvestigationSteps(): InvestigationStep[] {
+    return this.local.getInvestigationSteps();
+  }
+
+  /**
+   * executeStep — step 6 (policy retrieval) is enhanced with Cortex Search.
+   * All other steps delegate to local.
+   */
+  public async executeStep(
+    stepId: number,
+    trade: Trade,
+  ): Promise<{ logs: string[]; summary: string }> {
+    if (stepId === 6) {
+      try {
+        const query = `settlement instruction repair procedure cutoff ${trade.counterparty.name}`;
+        const response = await fetchCortexSearch(query, 3);
+
+        if (response.success && response.mode === 'snowflake' && response.results.length > 0) {
+          const top = response.results[0];
+          const docCode = String(top['DOC_CODE'] ?? '');
+          const policyName = String(top['POLICY_NAME'] ?? '');
+          const policySection = String(top['POLICY_SECTION'] ?? '');
+          const chunkText = String(top['CHUNK_TEXT'] ?? '');
+
+          return {
+            logs: [
+              `[CORTEX_SEARCH_KB] Querying Snowflake Cortex Search for 'Missing settlement instruction close to cutoff threshold'...`,
+              `[KB_RETRIEVAL] Top Match: ${docCode} (${policyName}), Section: ${policySection}`,
+              `[KB_POLICY] ${chunkText.slice(0, 200)}${chunkText.length > 200 ? '...' : ''}`,
+            ],
+            summary: `Retrieved ${docCode} §${policySection}: ${policyName}. Live Snowflake Cortex Search result.`,
+          };
+        }
+      } catch {
+        // fall through to local
+      }
+    }
+    return this.local.executeStep(stepId, trade);
+  }
+
+  public async generateRecommendation(trade: Trade): Promise<AIRecommendation> {
+    return this.local.generateRecommendation(trade);
+  }
+
+  public async getHistoricalCases(trade: Trade): Promise<{ cases: HistoricalCase[]; summary: any }> {
+    return this.local.getHistoricalCases(trade);
+  }
+
+  /**
+   * queryCopilot — tries Cortex Analyst via POST /api/cortex/analyst.
+   * If successful, formats the SQL result data into a human-readable response.
+   * Falls back to LocalCortexService on any failure.
+   */
+  public async queryCopilot(
+    query: string,
+    activeTrade?: Trade,
+  ): Promise<{ text: string; structuredData?: any; suggestedFollowUps?: string[] }> {
+    try {
+      const response = await fetchCortexAnalyst(query);
+
+      if (response.success && response.mode === 'snowflake') {
+        // Build a response from Cortex Analyst data
+        const sql = response.sql;
+        const data = response.data || [];
+        const interpretation = response.interpretation || '';
+
+        if (sql && data.length > 0) {
+          // Format the data rows as a markdown table-like summary
+          const rowSummaries = data.slice(0, 5).map((row) => {
+            return Object.entries(row)
+              .map(([k, v]) => `**${k}**: ${v ?? 'N/A'}`)
+              .join(' | ');
+          });
+
+          const text = interpretation
+            ? `${interpretation}\n\n${rowSummaries.join('\n')}`
+            : `Cortex Analyst returned ${data.length} result${data.length > 1 ? 's' : ''}:\n\n${rowSummaries.join('\n')}`;
+
+          return {
+            text,
+            structuredData: {
+              type: 'investigation_summary' as const,
+              tradeId: activeTrade?.id,
+            },
+            suggestedFollowUps: [
+              'Why is TRD-92831 critical?',
+              'What should I do according to our SOP?',
+              'Have we seen this counterparty fail before?',
+            ],
+          };
+        }
+
+        // Cortex Analyst responded but no SQL/data — use interpretation text if present
+        if (interpretation) {
+          return {
+            text: interpretation,
+            suggestedFollowUps: [
+              'Show me critical settlement exceptions approaching cutoff.',
+              'Why is TRD-92831 critical?',
+            ],
+          };
+        }
+      }
+    } catch {
+      // Cortex Analyst unavailable — fall through to local
+    }
+
+    return this.local.queryCopilot(query, activeTrade);
+  }
+}
+
+export const cortexService: ICortexService = new HybridCortexService(
+  new LocalCortexService(),
+);

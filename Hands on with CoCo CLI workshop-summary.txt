@@ -1,0 +1,47 @@
+# Getting Started with Snowflake and Cortex Code for AI-Driven Data Solutions
+
+## Summary
+This video presents a detailed introduction to Snowflake, an AI and data-first SaaS platform, and Cortex Code (nicknamed "Coco"), their agentic CLI and desktop tool designed to accelerate AI and data workflows on Snowflake. The speaker walks viewers through the initial sign-up process, highlighting how Cortex Code facilitates seamless integration with Snowflake and other tools such as DBT, Airflow, Spark, and Postgres, emphasizing its extensibility, governance capabilities, and developer productivity.
+
+The session explains the challenges with current AI development workflows, such as managing complex data pipelines, maintaining contextual data understanding, enforcing data governance, and reducing AI hallucination by ensuring AI stays close to the data. Cortex Code addresses these by combining context-aware AI, role-based access controls, and high-fidelity data engineering features within Snowflake.
+
+The video explores Cortex Code’s architecture, capabilities, and usage modes (CLI, desktop, and Snowflake UI integration). It demonstrates how developers can automate data discovery, pipeline optimization, admin tasks, machine learning workflows, and agent development purely by leveraging natural language queries or commands. The tool provides continuous feedback, such as error diagnostics (self-healing), SQL generation, and lineage discovery. 
+
+Furthermore, the video showcases how Cortex Code’s model garden approach supports multiple LLMs, allowing users to pick models best suited for tasks ranging from planning to execution. The presenter walks through installation steps, configuration details, and real-world usage scenarios, including building skills (pre-packaged functions/automations), generating dashboards with Streamlit, and executing complex SQL and AI-driven queries.
+
+Finally, it highlights Cortex Code’s growth and adoption metrics, benchmarking results against similar tools, and best practices for hackathons and solution development, positioning Cortex Code as a next-generation platform for AI-augmented data engineering and application development on Snowflake.
+
+## Highlights
+- 🚀 Snowflake is a data-first AI SaaS platform emphasizing governance, context, and proximity of AI to data.
+- 🤖 Cortex Code (“Coco”) is Snowflake's agentic CLI and desktop tool that accelerates AI coding and data engineering.
+- 🔄 Cortex Code supports integration with multiple tools like DBT, Airflow, Spark, and Postgres, and enables complex AI-powered workflows.
+- 🛡️ Emphasizes strong data governance, role-based access control, and security by design within Snowflake.
+- 🧩 Cortex Code allows building and managing reusable "skills" to automate recurring tasks and complex pipelines.
+- ✨ Features like AI-based error diagnostics and planning modes significantly enhance developer productivity.
+- 📈 Cortex Code exhibits strong momentum with thousands of active global users and superior performance compared to competing AI coding tools.
+
+## Key Insights
+- 🤝 **AI-Proximity to Data Maximizes Relevance and Reduces Hallucinations**  
+  By keeping AI models close to the data within Snowflake’s secure environment, Cortex Code reduces the risk of hallucinations (AI-generated incorrect information) and ensures decisions are grounded in accurate, governed data. This architectural principle is fundamental to reliable AI adoption in enterprise environments.
+
+- 🧠 **Context Awareness Enhances Data Strategy and AI Accuracy**  
+  Cortex Code builds semantic and contextual layers atop underlying data, including dictionaries, ontologies, and encyclopedias, which equips AI agents to understand the data landscape deeply. Without persistent, accessible context, AI workflows become brittle and error-prone; Cortex Code addresses this critical challenge.
+
+- 🔄 **Extensibility and Interoperability Across Tools and Languages Increase Developer Efficiency**  
+  By supporting a wide range of data tools (dbt, Airflow, Spark), programming languages (React, Node, Python), and platforms, Cortex Code fits within existing enterprise ecosystems. This flexibility permits accelerated end-to-end development and avoids vendor lock-in.
+
+- 📊 **Automation of Complex Data Engineering Tasks via Skills Simplifies Pipeline Management**  
+  Skills in Cortex Code act like modular, reusable functions that perform data discovery, governance tasks, pipeline optimizations, and analytics repeatedly with high precision. This reduces manual overhead and increases reliability across large-scale data workflows.
+
+- 🎯 **Model Garden Approach Offers Dynamic Access to Cutting-Edge LLMs**  
+  Rather than relying on a single model, Cortex Code exposes multiple pretrained LLMs (like GPT 5.4, Opus 4.8, Sony 5.2). Users select models tailored to different task complexities—high-end models for planning, lighter ones for routine queries—optimizing resource use and improving results.
+
+- 🛠️ **CLI and Desktop Interfaces Provide Versatile User Experiences for AI and SQL Development**  
+  Powers users comfortable with command-line and terminal environments or prefers intuitive desktop apps with graphical controls. Both interfaces offer features like query generation, app building with Streamlit, and easy upgrades, appealing to diverse user preferences.
+
+- 📈 **Strong Adoption and Benchmarking Validate Cortex Code Efficiency and Impact**  
+  With over 3,300+ monthly active users globally and a 15.7% higher accuracy in code generation compared to competitors like Cloud Code, Cortex Code is proven as a robust productivity enhancer. Also, integrations with major brands and real-world feedback illustrate its reliability in production environments.
+
+---
+
+This video serves as a comprehensive primer for developers and data professionals eager to harness Snowflake’s ecosystem with modern AI tooling, particularly Cortex Code, showcasing a mature, governance-first, and extensible platform optimized for today’s data and AI challenges.

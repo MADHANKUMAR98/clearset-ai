@@ -1,8 +1,8 @@
 name: clearset_post_trade_semantic_model
 description: >
   Semantic model for ClearSet AI Post-Trade Operations.
-  Enables natural-language analytics across settlement exceptions, trades, 
-  counterparty failure metrics, standing settlement instructions (SSI), 
+  Enables natural-language analytics across settlement exceptions, trades,
+  counterparty failure metrics, standing settlement instructions (SSI),
   SWIFT event logs, and historical resolution cases.
 
 tables:
@@ -11,7 +11,7 @@ tables:
   # ---------------------------------------------------------------------------
   - name: exceptions_enriched
     description: >
-      Post-trade settlement exceptions enriched with trade economics, security details, 
+      Post-trade settlement exceptions enriched with trade economics, security details,
       counterparty risk profiles, cutoff deadlines, and deterministic risk scores.
     base_table:
       database: CLEARSET_DB
@@ -25,6 +25,7 @@ tables:
         expr: EXCEPTION_ID
         data_type: VARCHAR
         unique: true
+        primary_key: true
         sample_values: ["EX-92831", "EX-81232", "EX-71292"]
 
       - name: trade_id
@@ -104,6 +105,20 @@ tables:
         data_type: VARCHAR
         sample_values: ["MISSING", "MISMATCHED", "PENDING", "MATCHED"]
 
+      - name: settlement_type
+        synonyms: ["settlement mechanism", "delivery method"]
+        description: Settlement method (DVP, FOP).
+        expr: SETTLEMENT_TYPE
+        data_type: VARCHAR
+        sample_values: ["DVP", "FOP"]
+
+      - name: settlement_status
+        synonyms: ["settlement state", "delivery state"]
+        description: Current settlement status at the depository (PENDING, MATCHED, SETTLED, FAILED).
+        expr: SETTLEMENT_STATUS
+        data_type: VARCHAR
+        sample_values: ["PENDING", "MATCHED", "SETTLED", "FAILED"]
+
     time_dimensions:
       - name: cutoff_time
         synonyms: ["settlement cutoff", "deadline", "market cutoff"]
@@ -165,6 +180,7 @@ tables:
         expr: CP_ID
         data_type: VARCHAR
         unique: true
+        primary_key: true
         sample_values: ["CP-192", "CP-104", "CP-088", "CP-210", "CP-115"]
 
       - name: name
@@ -219,6 +235,7 @@ tables:
 
   # ---------------------------------------------------------------------------
   # 3. SETTLEMENT EVENTS (SWIFT message & telemetry audit trail)
+  # Note: base table SETTLEMENT_EVENTS. STATUS column used (not EVENT_STATUS).
   # ---------------------------------------------------------------------------
   - name: settlement_events
     description: >
@@ -226,7 +243,7 @@ tables:
     base_table:
       database: CLEARSET_DB
       schema: CLEARSET_SCHEMA
-      table: V_SETTLEMENT_EVENTS
+      table: SETTLEMENT_EVENTS
 
     dimensions:
       - name: event_id
@@ -235,6 +252,7 @@ tables:
         expr: EVENT_ID
         data_type: VARCHAR
         unique: true
+        primary_key: true
         sample_values: ["EVT-101", "EVT-102", "EVT-103", "EVT-104", "EVT-105"]
 
       - name: trade_id
@@ -252,9 +270,9 @@ tables:
         sample_values: ["SWIFT MT541", "SWIFT MT548", "INTERNAL_ALERT"]
 
       - name: event_status
-        synonyms: ["status", "depository state"]
+        synonyms: ["status", "depository state", "event state"]
         description: Event milestone state (TRADE_BOOKED, SSI_NOT_FOUND, CRITICAL_RISK_FLAGGED).
-        expr: EVENT_STATUS
+        expr: STATUS
         data_type: VARCHAR
         sample_values: ["TRADE_BOOKED", "SSI_NOT_FOUND", "CUTOFF_WARNING_T120", "CRITICAL_RISK_FLAGGED"]
 
@@ -280,15 +298,16 @@ tables:
 
   # ---------------------------------------------------------------------------
   # 4. HISTORICAL CASES (Institutional memory & playbooks)
+  # Note: base table HISTORICAL_CASES. No COUNTERPARTY_NAME column — join via cp_id.
   # ---------------------------------------------------------------------------
   - name: historical_cases
     description: >
-      Historical investigation cases, root causes, applied SOP procedures, 
+      Historical investigation cases, root causes, applied SOP procedures,
       resolution strategies, and regulatory penalties avoided.
     base_table:
       database: CLEARSET_DB
       schema: CLEARSET_SCHEMA
-      table: V_HISTORICAL_CASES
+      table: HISTORICAL_CASES
 
     dimensions:
       - name: historical_case_id
@@ -297,21 +316,22 @@ tables:
         expr: HISTORICAL_CASE_ID
         data_type: VARCHAR
         unique: true
+        primary_key: true
         sample_values: ["INV-2026-00412", "INV-2026-00389", "INV-2026-00311"]
+
+      - name: original_trade_id
+        synonyms: ["trade id", "original trade", "trade ticket"]
+        description: Trade ID from the original exception that generated this case.
+        expr: ORIGINAL_TRADE_ID
+        data_type: VARCHAR
+        sample_values: ["TRD-92831", "TRD-81232"]
 
       - name: counterparty_id
         synonyms: ["cp id", "counterparty"]
         description: Counterparty ID associated with the historical case.
         expr: CP_ID
         data_type: VARCHAR
-        sample_values: ["CP-192"]
-
-      - name: counterparty_name
-        synonyms: ["counterparty", "firm name"]
-        description: Counterparty name.
-        expr: COUNTERPARTY_NAME
-        data_type: VARCHAR
-        sample_values: ["Apex Prime Clearing Ltd."]
+        sample_values: ["CP-192", "CP-104"]
 
       - name: root_cause
         synonyms: ["failure cause", "issue summary"]
@@ -339,6 +359,13 @@ tables:
         data_type: VARCHAR
         sample_values: ["RESOLVED_SUCCESS", "FAILED_SETTLEMENT"]
 
+    time_dimensions:
+      - name: case_date
+        synonyms: ["case opened date", "date of case"]
+        description: Date when the historical case was opened.
+        expr: CASE_DATE
+        data_type: DATE
+
     measures:
       - name: time_to_resolve_hours
         synonyms: ["hours to resolve", "turnaround time"]
@@ -356,15 +383,17 @@ tables:
 
   # ---------------------------------------------------------------------------
   # 5. SETTLEMENT INSTRUCTIONS (Standing Settlement Instructions & Mismatches)
+  # Note: base table SETTLEMENT_INSTRUCTIONS. STATUS column used (not SSI_STATUS).
+  # No CP_ID/COUNTERPARTY_NAME/TRADE_VALUE/CUTOFF_TIME in this table.
   # ---------------------------------------------------------------------------
   - name: settlement_instructions
     description: >
-      Standing settlement instructions (SSI), depository participant details, 
+      Standing settlement instructions (SSI), depository participant details,
       cash/securities accounts, and mismatch status.
     base_table:
       database: CLEARSET_DB
       schema: CLEARSET_SCHEMA
-      table: V_SSI_STATUS
+      table: SETTLEMENT_INSTRUCTIONS
 
     dimensions:
       - name: instruction_id
@@ -373,6 +402,7 @@ tables:
         expr: INSTRUCTION_ID
         data_type: VARCHAR
         unique: true
+        primary_key: true
         sample_values: ["SSI-92831", "SSI-81232", "SSI-71292"]
 
       - name: trade_id
@@ -381,20 +411,6 @@ tables:
         expr: TRADE_ID
         data_type: VARCHAR
         sample_values: ["TRD-92831", "TRD-81232", "TRD-71292"]
-
-      - name: counterparty_id
-        synonyms: ["cp id", "counterparty id"]
-        description: Counterparty ID associated with the instruction.
-        expr: CP_ID
-        data_type: VARCHAR
-        sample_values: ["CP-192", "CP-104", "CP-088"]
-
-      - name: counterparty_name
-        synonyms: ["counterparty", "firm name"]
-        description: Name of counterparty broker/custodian.
-        expr: COUNTERPARTY_NAME
-        data_type: VARCHAR
-        sample_values: ["Apex Prime Clearing Ltd.", "Vanguard Global Markets"]
 
       - name: settlement_type
         synonyms: ["settlement mechanism", "delivery method"]
@@ -430,9 +446,9 @@ tables:
         data_type: VARCHAR
 
       - name: ssi_status
-        synonyms: ["instruction state", "match status"]
+        synonyms: ["instruction state", "match status", "ssi match status"]
         description: SSI verification state (MISSING, MISMATCHED, MATCHED, PENDING).
-        expr: SSI_STATUS
+        expr: STATUS
         data_type: VARCHAR
         sample_values: ["MISSING", "MISMATCHED", "MATCHED", "PENDING"]
 
@@ -443,25 +459,11 @@ tables:
         data_type: VARCHAR
 
     time_dimensions:
-      - name: settlement_date
-        synonyms: ["value date", "intended settlement date"]
-        description: Intended date of settlement.
-        expr: SETTLEMENT_DATE
-        data_type: DATE
-
-      - name: cutoff_time
-        synonyms: ["deadline", "settlement cutoff"]
-        description: Settlement cutoff timestamp.
-        expr: CUTOFF_TIME
+      - name: last_updated
+        synonyms: ["last modified", "updated at"]
+        description: Timestamp when the instruction was last updated.
+        expr: LAST_UPDATED
         data_type: TIMESTAMP_NTZ
-
-    measures:
-      - name: trade_value
-        synonyms: ["gross exposure", "notional value"]
-        description: Trade monetary value in USD.
-        expr: TRADE_VALUE
-        data_type: NUMBER
-        default_aggregation: sum
 
 # -----------------------------------------------------------------------------
 # RELATIONSHIPS (Cross-table joins across the post-trade semantic graph)
@@ -507,16 +509,29 @@ relationships:
 # VERIFIED QUERIES (Ground-Truth Few-Shot Queries for Cortex Analyst)
 # -----------------------------------------------------------------------------
 verified_queries:
+  - name: trade_trd_92831_details
+    question: "Show me trade TRD-92831 with its trade value, settlement status, instruction status, risk score, and exception type."
+    sql: >
+      SELECT
+          TRADE_ID,
+          TRADE_VALUE,
+          SETTLEMENT_STATUS,
+          SSI_STATUS,
+          RISK_SCORE,
+          EXCEPTION_TYPE
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
+      WHERE TRADE_ID = 'TRD-92831';
+
   - name: critical_exceptions_approaching_cutoff
     question: "Show me critical settlement exceptions approaching cutoff."
     sql: >
-      SELECT 
-          TRADE_ID, 
-          TICKER, 
-          COUNTERPARTY_NAME, 
-          TRADE_VALUE, 
-          MINUTES_TO_CUTOFF, 
-          RISK_SCORE 
+      SELECT
+          TRADE_ID,
+          TICKER,
+          COUNTERPARTY_NAME,
+          TRADE_VALUE,
+          MINUTES_TO_CUTOFF,
+          RISK_SCORE
       FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
       WHERE SEVERITY = 'CRITICAL' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING')
       ORDER BY RISK_SCORE DESC, MINUTES_TO_CUTOFF ASC;
@@ -524,7 +539,7 @@ verified_queries:
   - name: why_trd_92831_critical
     question: "Why is TRD-92831 critical?"
     sql: >
-      SELECT 
+      SELECT
           TRADE_ID,
           TICKER,
           COUNTERPARTY_NAME,
@@ -538,24 +553,10 @@ verified_queries:
       FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
       WHERE TRADE_ID = 'TRD-92831';
 
-  - name: settlement_history_trd_92831
-    question: "Show me the settlement history for TRD-92831."
-    sql: >
-      SELECT 
-          EVENT_ID,
-          EVENT_TIMESTAMP,
-          MESSAGE_TYPE,
-          EVENT_STATUS,
-          DESCRIPTION,
-          SOURCE
-      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_SETTLEMENT_EVENTS
-      WHERE TRADE_ID = 'TRD-92831'
-      ORDER BY EVENT_TIMESTAMP ASC;
-
   - name: failures_for_cp_192
     question: "How many failures has CP-192 had in the last 30 days?"
     sql: >
-      SELECT 
+      SELECT
           CP_ID,
           NAME,
           PRIOR_FAILURES_30D,
@@ -567,34 +568,16 @@ verified_queries:
   - name: total_exposure_critical_exceptions
     question: "What is the total exposure of open critical settlement exceptions?"
     sql: >
-      SELECT 
+      SELECT
           COUNT(EXCEPTION_ID) AS TOTAL_CRITICAL_EXCEPTIONS,
           SUM(TRADE_VALUE) AS TOTAL_GROSS_EXPOSURE_USD
       FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
       WHERE SEVERITY = 'CRITICAL' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING');
 
-  - name: similar_cases_trd_92831
-    question: "Show me historical cases similar to TRD-92831."
-    sql: >
-      SELECT 
-          HISTORICAL_CASE_ID,
-          ORIGINAL_TRADE_ID,
-          CASE_DATE,
-          COUNTERPARTY_NAME,
-          ROOT_CAUSE,
-          APPLIED_PROCEDURE,
-          RESOLUTION_STRATEGY,
-          TIME_TO_RESOLVE_HOURS,
-          OUTCOME,
-          CSDR_PENALTY_AVOIDED
-      FROM CLEARSET_DB.CLEARSET_SCHEMA.V_HISTORICAL_CASES
-      WHERE CP_ID = 'CP-192'
-      ORDER BY CASE_DATE DESC;
-
   - name: counterparties_highest_failure_rates
     question: "Which counterparties have the highest settlement failure rates?"
     sql: >
-      SELECT 
+      SELECT
           CP_ID,
           NAME,
           PRIOR_FAILURES_30D,
@@ -606,7 +589,7 @@ verified_queries:
   - name: exceptions_missing_settlement_instructions
     question: "Which exceptions have missing settlement instructions?"
     sql: >
-      SELECT 
+      SELECT
           EXCEPTION_ID,
           TRADE_ID,
           TICKER,
@@ -618,3 +601,35 @@ verified_queries:
       FROM CLEARSET_DB.CLEARSET_SCHEMA.V_EXCEPTIONS_ENRICHED
       WHERE SSI_STATUS = 'MISSING' AND EXCEPTION_STATUS IN ('OPEN', 'INVESTIGATING')
       ORDER BY RISK_SCORE DESC;
+
+  - name: settlement_events_trd_92831
+    question: "Show me the settlement history for TRD-92831."
+    sql: >
+      SELECT
+          EVENT_ID,
+          EVENT_TIMESTAMP,
+          MESSAGE_TYPE,
+          STATUS,
+          DESCRIPTION,
+          SOURCE
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.SETTLEMENT_EVENTS
+      WHERE TRADE_ID = 'TRD-92831'
+      ORDER BY EVENT_TIMESTAMP ASC;
+
+  - name: historical_cases_cp_192
+    question: "Show me historical cases for counterparty CP-192."
+    sql: >
+      SELECT
+          HISTORICAL_CASE_ID,
+          ORIGINAL_TRADE_ID,
+          CASE_DATE,
+          CP_ID,
+          ROOT_CAUSE,
+          APPLIED_PROCEDURE,
+          RESOLUTION_STRATEGY,
+          TIME_TO_RESOLVE_HOURS,
+          OUTCOME,
+          CSDR_PENALTY_AVOIDED
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.HISTORICAL_CASES
+      WHERE CP_ID = 'CP-192'
+      ORDER BY CASE_DATE DESC;

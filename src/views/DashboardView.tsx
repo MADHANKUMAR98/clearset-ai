@@ -21,14 +21,6 @@ import {
   Bar 
 } from 'recharts';
 
-const COUNTERPARTY_FAIL_DISTRIBUTION = [
-  { name: 'Apex (CP-192)', fails: 7, exposure: 3.35 },
-  { name: 'Vanguard (CP-104)', fails: 6, exposure: 8.10 },
-  { name: 'Goldman (CP-088)', fails: 5, exposure: 1.51 },
-  { name: 'Citadel (CP-210)', fails: 4, exposure: 3.75 },
-  { name: 'Morgan S (CP-115)', fails: 3, exposure: 4.50 },
-];
-
 export const DashboardView: React.FC = () => {
   const { 
     exceptions, 
@@ -39,6 +31,34 @@ export const DashboardView: React.FC = () => {
   } = useApp();
 
   const criticalExceptions = exceptions.filter((ex) => ex.severity === 'CRITICAL' && ex.status !== 'RESOLVED');
+
+  // Derive counterparty fail concentration from live exceptions data.
+  // Group open exceptions by counterparty, using real priorFailures and tradeValue.
+  // Falls back gracefully to showing whatever exceptions we have (including local synthetic data).
+  const counterpartyFailDistribution = React.useMemo(() => {
+    const openExceptions = exceptions.filter((ex) => ex.status !== 'RESOLVED');
+    const map = new Map<string, { name: string; cpId: string; fails: number; exposure: number }>();
+    for (const ex of openExceptions) {
+      const cp = ex.trade.counterparty;
+      const shortName = cp.name.split(' ').slice(0, 2).join(' ');
+      const key = cp.id;
+      const existing = map.get(key);
+      if (existing) {
+        existing.exposure = Number((existing.exposure + ex.trade.tradeValue / 1_000_000).toFixed(2));
+      } else {
+        map.set(key, {
+          name: `${shortName} (${cp.id})`,
+          cpId: cp.id,
+          fails: cp.priorFailures,
+          exposure: Number((ex.trade.tradeValue / 1_000_000).toFixed(2)),
+        });
+      }
+    }
+    // Sort by prior failures descending, take top 5
+    return Array.from(map.values())
+      .sort((a, b) => b.fails - a.fails)
+      .slice(0, 5);
+  }, [exceptions]);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -276,7 +296,7 @@ export const DashboardView: React.FC = () => {
 
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={COUNTERPARTY_FAIL_DISTRIBUTION} layout="vertical" margin={{ left: 5, right: 10, top: 5, bottom: 5 }}>
+                <BarChart data={counterpartyFailDistribution} layout="vertical" margin={{ left: 5, right: 10, top: 5, bottom: 5 }}>
                   <XAxis type="number" hide />
                   <YAxis dataKey="name" type="category" width={110} tick={{ fill: '#CBD5E1', fontSize: 10, fontFamily: 'monospace' }} />
                   <Tooltip 

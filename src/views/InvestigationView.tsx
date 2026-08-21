@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { 
   SETTLEMENT_INSTRUCTIONS, 
-  SETTLEMENT_EVENTS_TRD92831, 
   HISTORICAL_CASES_TRD92831, 
   HISTORICAL_SUMMARY_TRD92831 
 } from '../data/syntheticData';
@@ -32,7 +31,9 @@ export const InvestigationView: React.FC = () => {
     startInvestigation, 
     approveAction, 
     rejectAction, 
-    setActiveTab 
+    setActiveTab,
+    activeSettlementEvents,
+    activeSettlementInstruction,
   } = useApp();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -48,7 +49,10 @@ export const InvestigationView: React.FC = () => {
   }
 
   const trade = activeException.trade;
-  const ssi = SETTLEMENT_INSTRUCTIONS[trade.id] || SETTLEMENT_INSTRUCTIONS['TRD-92831'];
+  // SSI: use live data from context (loaded via settlementService); fall back to local dict.
+  const ssi = activeSettlementInstruction ?? SETTLEMENT_INSTRUCTIONS[trade.id] ?? SETTLEMENT_INSTRUCTIONS['TRD-92831'];
+  // Settlement events: use live data from context (fetched via settlementService on trade change).
+  const settlementEvents = activeSettlementEvents.length > 0 ? activeSettlementEvents : [];
   const sop = POLICY_DOCUMENTS[0];
   const sopSection = sop.sections[0];
 
@@ -485,14 +489,20 @@ export const InvestigationView: React.FC = () => {
 
                   <div className="space-y-1">
                     <span className="text-[10px] text-slate-400 uppercase font-bold">SWIFT Event Timeline</span>
-                    {SETTLEMENT_EVENTS_TRD92831.map((evt) => (
-                      <div key={evt.id} className="p-2 rounded bg-[#162032] border border-slate-800 text-[10px] flex items-center justify-between">
-                        <div>
-                          <span className="text-cyan-400 font-bold">{evt.messageType}</span> • <span className="text-slate-200">{evt.description}</span>
-                        </div>
-                        <span className="text-slate-500 shrink-0 ml-2">{evt.timestamp.split('T')[1].replace('Z', '')}</span>
+                    {settlementEvents.length === 0 ? (
+                      <div className="p-2 rounded bg-[#162032] border border-slate-800 text-[10px] text-slate-400 font-mono">
+                        No settlement events found for {trade.id}.
                       </div>
-                    ))}
+                    ) : (
+                      settlementEvents.map((evt) => (
+                        <div key={evt.id} className="p-2 rounded bg-[#162032] border border-slate-800 text-[10px] flex items-center justify-between">
+                          <div>
+                            <span className="text-cyan-400 font-bold">{evt.messageType}</span> • <span className="text-slate-200">{evt.description}</span>
+                          </div>
+                          <span className="text-slate-500 shrink-0 ml-2">{evt.timestamp.includes('T') ? evt.timestamp.split('T')[1].replace('Z', '').slice(0, 8) : evt.timestamp}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

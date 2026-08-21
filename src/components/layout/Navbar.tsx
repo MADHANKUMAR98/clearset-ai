@@ -1,10 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Activity, Cpu } from 'lucide-react';
+import { Search, Activity, Cpu, Cloud, Database } from 'lucide-react';
+import { fetchHealth } from '../../services/apiClient';
+
+type SnowflakeStatus = 'checking' | 'live' | 'local';
 
 export const Navbar: React.FC = () => {
   const { searchQuery, setSearchQuery, dashboardMetrics } = useApp();
-  const [isLiveMode, setIsLiveMode] = useState<boolean>(false);
+  const [snowflakeStatus, setSnowflakeStatus] = useState<SnowflakeStatus>('checking');
+
+  // On mount, check health endpoint. Only claim LIVE SNOWFLAKE if snowflake: true.
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth(6000).then((health) => {
+      if (!cancelled) {
+        setSnowflakeStatus(health.snowflake === true ? 'live' : 'local');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const statusLabel =
+    snowflakeStatus === 'checking'
+      ? 'CHECKING CONNECTION...'
+      : snowflakeStatus === 'live'
+        ? 'LIVE SNOWFLAKE'
+        : 'LOCAL SIMULATION';
+
+  const statusDotClass =
+    snowflakeStatus === 'checking'
+      ? 'bg-yellow-400 animate-pulse'
+      : snowflakeStatus === 'live'
+        ? 'bg-emerald-400'
+        : 'bg-cyan-400 animate-pulse';
+
+  const StatusIcon = snowflakeStatus === 'live' ? Cloud : snowflakeStatus === 'checking' ? Database : Cpu;
 
   return (
     <header className="h-16 border-b border-[#1E293B] bg-[#0A0F1D]/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30 shadow-md">
@@ -27,19 +59,22 @@ export const Navbar: React.FC = () => {
 
         <div className="h-5 w-[1px] bg-slate-800 hidden md:block" />
 
-        {/* Phase 1 / Snowflake Readiness Indicator */}
+        {/* Snowflake / Backend Status Indicator — driven by GET /api/health */}
         <div className="hidden md:flex items-center space-x-2">
-          <button
-            onClick={() => setIsLiveMode(!isLiveMode)}
-            className="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-mono font-medium border bg-slate-900/80 border-slate-700/80 text-slate-300 hover:border-slate-600 transition-colors"
-            title="ClearSet is currently operating in Phase 1 Local AI simulation mode with Snowflake-native Cortex blueprints."
+          <div
+            className="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-mono font-medium border bg-slate-900/80 border-slate-700/80 text-slate-300"
+            title={
+              snowflakeStatus === 'live'
+                ? 'Connected to live Snowflake data warehouse (GET /api/health → snowflake: true)'
+                : snowflakeStatus === 'checking'
+                  ? 'Checking Snowflake connection status…'
+                  : 'Running in local simulation mode (Snowflake unavailable or backend stopped)'
+            }
           >
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="text-[11px]">
-              {isLiveMode ? 'PHASE 2 · LIVE SNOWFLAKE (READY)' : 'PHASE 1 · LOCAL AI SIMULATION (CORTEX-READY)'}
-            </span>
-            <span className={`w-2 h-2 rounded-full ${isLiveMode ? 'bg-emerald-400' : 'bg-cyan-400 animate-pulse'}`} />
-          </button>
+            <StatusIcon className={`w-3.5 h-3.5 ${snowflakeStatus === 'live' ? 'text-emerald-400' : snowflakeStatus === 'checking' ? 'text-yellow-400' : 'text-cyan-400'}`} />
+            <span className="text-[11px]">{statusLabel}</span>
+            <span className={`w-2 h-2 rounded-full ${statusDotClass}`} />
+          </div>
         </div>
       </div>
 

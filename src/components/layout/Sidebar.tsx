@@ -12,7 +12,14 @@ import {
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, dashboardMetrics, cases } = useApp();
+  const { activeTab, setActiveTab, dashboardMetrics, cases, exceptions } = useApp();
+
+  // Find the highest-risk unresolved exception for the priority triage box.
+  // Falls back to the hardcoded TRD-92831 display values if no exceptions are loaded yet.
+  const priorityException =
+    exceptions
+      .filter((ex) => ex.status !== 'RESOLVED')
+      .sort((a, b) => b.riskScore.totalScore - a.riskScore.totalScore)[0] ?? null;
 
   const navItems = [
     {
@@ -114,17 +121,43 @@ export const Sidebar: React.FC = () => {
               }}
               className="w-full p-2 rounded-lg bg-[#162032] hover:bg-[#1B273F] border border-rose-500/40 flex items-center justify-between text-left transition-colors"
             >
-              <div>
-                <div className="font-mono text-white font-bold text-xs flex items-center gap-1">
-                  <span>TRD-92831</span>
-                  <span className="text-[9px] font-normal text-rose-400 bg-rose-500/10 px-1 rounded">DVP</span>
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">$2.4M • CP-192 (Apex)</div>
-              </div>
-              <div className="text-right">
-                <span className="text-rose-400 font-bold font-mono text-xs">91</span>
-                <div className="text-[9px] text-amber-400 font-mono">1h 42m</div>
-              </div>
+              {priorityException ? (
+                <>
+                  <div>
+                    <div className="font-mono text-white font-bold text-xs flex items-center gap-1">
+                      <span>{priorityException.tradeId}</span>
+                      <span className="text-[9px] font-normal text-rose-400 bg-rose-500/10 px-1 rounded">
+                        {priorityException.trade.settlementType}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">
+                      ${(priorityException.trade.tradeValue / 1_000_000).toFixed(1)}M • {priorityException.trade.counterparty.id} ({priorityException.trade.counterparty.name.split(' ')[0]})
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rose-400 font-bold font-mono text-xs">
+                      {priorityException.riskScore.totalScore}
+                    </span>
+                    <div className="text-[9px] text-amber-400 font-mono">
+                      {Math.floor(priorityException.trade.cutoffMinutesRemaining / 60)}h {priorityException.trade.cutoffMinutesRemaining % 60}m
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <div className="font-mono text-white font-bold text-xs flex items-center gap-1">
+                      <span>TRD-92831</span>
+                      <span className="text-[9px] font-normal text-rose-400 bg-rose-500/10 px-1 rounded">DVP</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono">$2.4M • CP-192 (Apex)</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-rose-400 font-bold font-mono text-xs">91</span>
+                    <div className="text-[9px] text-amber-400 font-mono">1h 42m</div>
+                  </div>
+                </>
+              )}
             </button>
           </div>
         </div>

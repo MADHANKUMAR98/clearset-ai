@@ -1,12 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { CaseRecord, CopilotMessage, ExceptionItem, InvestigationStep } from '../types';
+import type { CaseRecord, CopilotMessage, ExceptionItem, InvestigationStep, SettlementEvent, SettlementInstruction } from '../types';
 import type { DashboardStats } from '../services/types';
 import { settlementService } from '../services/settlementService';
 import { cortexService } from '../services/cortexService';
 import { INITIAL_CASES } from '../data/syntheticData';
+import { fetchHealth } from '../services/apiClient';
 import confetti from 'canvas-confetti';
 
 export type EvidenceTabType = 'trade' | 'settlement' | 'counterparty' | 'history' | 'policy';
+
+/** Whether the backend is connected to live Snowflake. */
+export type BackendMode = 'checking' | 'live' | 'local';
 
 interface AppContextType {
   exceptions: ExceptionItem[];
@@ -29,6 +33,12 @@ interface AppContextType {
   sendCopilotMessage: (text: string) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
+  /** Live settlement events for the currently active trade (from Snowflake or local fallback). */
+  activeSettlementEvents: SettlementEvent[];
+  /** Live SSI record for the currently active trade (from service layer, local fallback if unavailable). */
+  activeSettlementInstruction: SettlementInstruction | null;
+  /** Backend/Snowflake connection status, driven by GET /api/health. */
+  backendMode: BackendMode;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -44,12 +54,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Initial load from settlementService
+  // Live data for the active trade's evidence tabs
+  const [activeSettlementEvents, setActiveSettlementEvents] = useState<SettlementEvent[]>([]);
+  const [activeSettlementInstruction, setActiveSettlementInstruction] = useState<SettlementInstruction | null>(null);
+
+  // Backend/Snowflake connection status — single source of truth for the whole app.
+  // Navbar uses its own fetchHealth() call; this one drives CopilotView and any other consumer.
+  const [backendMode, setBackendMode] = useState<BackendMode>('checking');
+
+  // Check health once on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth(6000).then((health) => {
+      if (!cancelled) {
+        setBackendMode(health.snowflake === true ? 'live' : 'local');
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Initial load of exceptions from settlementService (Snowflake → local fallback)
   useEffect(() => {
     settlementService.getExceptions().then((data) => {
       setExceptions(data);
     });
   }, []);
+
+  // When the active trade changes, load its settlement events and SSI via the service layer.
+  // HybridSettlementService will try the live endpoint first, then fall back to local data.
+  useEffect(() => {
+    if (!activeExceptionId) return;
+    let cancelled = false;
+
+    settlementService.getSettlementEvents(activeExceptionId).then((events) => {
+      if (!cancelled) setActiveSettlementEvents(events);
+    });
+
+    settlementService.getSettlementInstruction(activeExceptionId).then((ssi) => {
+      if (!cancelled) setActiveSettlementInstruction(ssi);
+    });
+
+    return () => { cancelled = true; };
+  }, [activeExceptionId]);
 
   // Compute dynamic dashboard metrics from active state
   const dashboardMetrics = settlementService.getDashboardMetrics(exceptions, cases);
@@ -261,6 +307,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendCopilotMessage,
         searchQuery,
         setSearchQuery,
+        activeSettlementEvents,
+        activeSettlementInstruction,
+        backendMode,
       }}
     >
       {children}
