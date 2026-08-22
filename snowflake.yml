@@ -1,0 +1,33 @@
+definition_version: "2"
+
+entities:
+  clearset-ai:
+    type: snowflake-app
+    identifier:
+      name: CLEARSET_AI
+      database: CLEARSET_DB
+      schema: CLEARSET_SCHEMA
+    artifacts:
+      - src: ./*
+        dest: ./
+        ignore:
+          - node_modules
+          - server/node_modules
+          - .env
+          - .env.*
+          - server/.env
+          - server/.env.*
+          - .git
+          - .gitignore
+          - dist
+          - server/dist
+          - snowflake.log
+          - server/snowflake.log
+          - "*.log"
+          - .kiro
+          - .snowflake/cortex/conversations
+          - .snowflake/cortex/cache
+          - .snowflake/cortex/remote_cache
+          - .snowflake/cortex/logs
+    query_warehouse: COMPUTE_WH
+    build_eai: CLEARSET_CORTEX_EAI

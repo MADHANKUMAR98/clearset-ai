@@ -154,10 +154,10 @@ export function getStepLogs(stepId: number, trade: Trade): { logs: string[]; sum
       return {
         logs: [
           `[CORTEX_SEARCH] Vector search across HISTORICAL_CASES with embedding for 'Missing SSI + US Equities + ${trade.counterparty.name}'...`,
-          `[HISTORY_MATCH] Found 18 similar historical cases (Average similarity: 93.4%).`,
-          `[RESOLUTION_ANALYSIS] Breakdown: 12 Corrected SSI (66.7%), 4 Escalated (22.2%), 2 Failed (11.1%). Avg resolution time: 3.8 hours.`,
+          `[HISTORY_MATCH] Found 18 similar historical cases (Average similarity: 93.4%). [ILLUSTRATIVE — historical case table not in current schema]`,
+          `[RESOLUTION_ANALYSIS] Breakdown: 12 Corrected SSI (66.7%), 4 Escalated (22.2%), 2 Failed (11.1%). Avg resolution time: 3.8 hours. [ILLUSTRATIVE]`,
         ],
-        summary: 'Matched 18 similar historical cases. 88.9% resolved successfully via proactive repair.',
+        summary: 'Matched 18 similar historical cases (illustrative estimate — live historical case data not available).',
       };
     case 6:
       return {
@@ -191,7 +191,7 @@ export function getStepLogs(stepId: number, trade: Trade): { logs: string[]; sum
         logs: [
           `[RECOMMENDER] Formulating action plan aligned with SOP-OPS-032 §3.2 and historical success playbook...`,
           `[RECOMMENDER] Plan: 1. Dispatch SWIFT MT599 repair -> 2. Escalate to Ops Lead -> 3. Monitor DTC queue -> 4. Recalculate risk.`,
-          `[RECOMMENDER] Projected CSDR Penalty Avoided: $1,566.67/day.`,
+          `[RECOMMENDER] Projected CSDR Penalty Avoided: $1,566.67/day. [ILLUSTRATIVE — not calculated from live trade data]`,
         ],
         summary: 'Generated 4-step resolution plan. Ready for human authorization.',
       };

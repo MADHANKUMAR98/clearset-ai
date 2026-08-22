@@ -34,6 +34,7 @@ export const InvestigationView: React.FC = () => {
     setActiveTab,
     activeSettlementEvents,
     activeSettlementInstruction,
+    backendMode,
   } = useApp();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -580,7 +581,12 @@ export const InvestigationView: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-1.5">
                     <span className="text-amber-400 font-bold">•</span>
-                    <span>18 similar historical cases required early escalation to prevent end-of-day depository reject.</span>
+                    <span>
+                      18 similar historical cases required early escalation to prevent end-of-day depository reject.
+                      {backendMode === 'live' && (
+                        <span className="ml-1 text-[10px] text-slate-500 font-mono">(illustrative — simulation estimate)</span>
+                      )}
+                    </span>
                   </li>
                 </ul>
               </div>

@@ -234,7 +234,12 @@ export const CopilotView: React.FC = () => {
                         </div>
 
                         <div className="pt-1 flex items-center justify-between text-xs">
-                          <span className="text-[11px] text-emerald-400 font-mono font-bold">18 Similar Historical Cases (88.9% Success)</span>
+                          <span className="text-[11px] text-emerald-400 font-mono font-bold">
+                            18 Similar Historical Cases (88.9% Success)
+                            {backendMode === 'live' && (
+                              <span className="ml-1 text-[10px] text-slate-500 font-normal font-mono">(illustrative)</span>
+                            )}
+                          </span>
                           <button
                             onClick={() => selectExceptionForInvestigation('TRD-92831', 'counterparty')}
                             className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[10px] flex items-center gap-1"
@@ -251,7 +256,12 @@ export const CopilotView: React.FC = () => {
                       <div className="p-3.5 rounded-xl bg-[#0F172A] border border-slate-700 space-y-2 font-mono text-xs">
                         <div className="flex items-center justify-between text-slate-200 font-bold">
                           <span>Institutional Resolution Precedents</span>
-                          <span className="text-emerald-400">88.9% Success Playbook</span>
+                          <span className="text-emerald-400">
+                            88.9% Success Playbook
+                            {backendMode === 'live' && (
+                              <span className="ml-1 text-[10px] text-slate-500 font-normal font-mono">(illustrative)</span>
+                            )}
+                          </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-1">
                           <div className="p-2 rounded bg-[#162032] border border-slate-800">

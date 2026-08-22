@@ -1,0 +1,12 @@
+# ClearSet AI — Snowflake App Runtime build manifest
+# Docs: https://docs.snowflake.com/en/developer-guide/snowflake-app-runtime/app-yml
+
+install: |
+  npm ci --prefix server
+  npm ci
+
+build: |
+  npm run build --prefix server
+  npm run build
+
+run: node server/dist/index.js

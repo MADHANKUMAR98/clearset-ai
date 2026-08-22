@@ -27,7 +27,8 @@ export const DashboardView: React.FC = () => {
     dashboardMetrics, 
     selectExceptionForInvestigation, 
     setActiveTab, 
-    sendCopilotMessage 
+    sendCopilotMessage,
+    backendMode,
   } = useApp();
 
   const criticalExceptions = exceptions.filter((ex) => ex.severity === 'CRITICAL' && ex.status !== 'RESOLVED');
@@ -329,10 +330,18 @@ export const DashboardView: React.FC = () => {
               <div className="p-2.5 rounded-lg bg-[#162032] border border-slate-700">
                 <div className="flex items-center justify-between text-slate-200 font-medium">
                   <span>Expedited SSI Repair SOP §3.2</span>
-                  <span className="text-emerald-400 font-mono font-bold">88.9% Success</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    88.9% Success
+                    {backendMode === 'live' && (
+                      <span className="ml-1 text-[10px] text-slate-500 font-normal">(illustrative)</span>
+                    )}
+                  </span>
                 </div>
                 <div className="text-[11px] text-slate-400 mt-1">
                   18 historical cases matched. Resolution time reduced from 24h to 3.8h.
+                  {backendMode === 'live' && (
+                    <span className="ml-1 text-slate-600">(illustrative estimate)</span>
+                  )}
                 </div>
               </div>
 

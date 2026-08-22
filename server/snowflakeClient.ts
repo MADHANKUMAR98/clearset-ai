@@ -1,5 +1,6 @@
 import snowflake from 'snowflake-sdk';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -51,9 +52,35 @@ export class SnowflakeClient {
   }
 
   /**
+   * Reads the Snowflake-injected OAuth token from /snowflake/session/token.
+   * Available inside Snowflake App Runtime / SPCS containers.
+   * Returns null when running locally (file does not exist).
+   * The token rotates every few minutes — always read fresh.
+   */
+  private readSpcsOAuthToken(): string | null {
+    const TOKEN_PATH = '/snowflake/session/token';
+    try {
+      if (fs.existsSync(TOKEN_PATH)) {
+        return fs.readFileSync(TOKEN_PATH, 'utf8').trim();
+      }
+    } catch {
+      // Not inside SPCS — expected in local development
+    }
+    return null;
+  }
+
+  /**
    * Checks if minimum required Snowflake environment variables are present.
+   * In Snowflake App Runtime, SNOWFLAKE_ACCOUNT and SNOWFLAKE_HOST are injected
+   * automatically and the OAuth token replaces the password.
    */
   public isConfigured(): boolean {
+    const spcsToken = this.readSpcsOAuthToken();
+    if (spcsToken) {
+      // Inside App Runtime: account and host are injected by Snowflake
+      return Boolean(process.env.SNOWFLAKE_ACCOUNT || process.env.SNOWFLAKE_HOST);
+    }
+    // Local development: require account + user + password
     return Boolean(
       this.config.account &&
       this.config.username &&
@@ -78,21 +105,52 @@ export class SnowflakeClient {
 
   /** Temporary diagnostic-only configuration view. Never includes the password. */
   public getDiagnosticEnvironment() {
+    const spcsToken = this.readSpcsOAuthToken();
     return {
-      SNOWFLAKE_ACCOUNT: this.config.account || 'NOT_SET',
+      SNOWFLAKE_ACCOUNT: this.config.account || process.env.SNOWFLAKE_ACCOUNT || 'NOT_SET',
+      SNOWFLAKE_HOST: process.env.SNOWFLAKE_HOST || 'NOT_SET',
       SNOWFLAKE_USER: this.config.username || 'NOT_SET',
       SNOWFLAKE_DATABASE: this.config.database || 'NOT_SET',
       SNOWFLAKE_SCHEMA: this.config.schema || 'NOT_SET',
       SNOWFLAKE_WAREHOUSE: this.config.warehouse || 'NOT_SET',
       SNOWFLAKE_ROLE: this.config.role || 'NOT_SET',
       SNOWFLAKE_PASSWORD_PRESENT: Boolean(this.config.password),
+      SPCS_OAUTH_TOKEN_PRESENT: Boolean(spcsToken),
+      AUTH_MODE: spcsToken ? 'SPCS_OAUTH' : 'PASSWORD',
     };
   }
 
   /**
    * Creates an active connection to Snowflake.
+   *
+   * Auth strategy:
+   *   SNOWFLAKE APP RUNTIME — use the SPCS-injected OAuth token from
+   *     /snowflake/session/token with SNOWFLAKE_HOST (private endpoint).
+   *     No password or PAT is required or used.
+   *   LOCAL DEVELOPMENT — use account + username + password from .env,
+   *     exactly as before.
    */
   private createConnection(): snowflake.Connection {
+    const spcsToken = this.readSpcsOAuthToken();
+    const host = process.env.SNOWFLAKE_HOST;
+
+    if (spcsToken && host) {
+      // Inside Snowflake App Runtime / SPCS: credential-free OAuth via injected token
+      return snowflake.createConnection({
+        account: this.config.account || process.env.SNOWFLAKE_ACCOUNT || '',
+        username: this.config.username || process.env.SNOWFLAKE_USER || '',
+        host,
+        authenticator: 'OAUTH',
+        token: spcsToken,
+        database: this.config.database,
+        schema: this.config.schema,
+        warehouse: this.config.warehouse,
+        role: this.config.role,
+        clientSessionKeepAlive: true,
+      });
+    }
+
+    // Local development: password-based auth (unchanged)
     return snowflake.createConnection({
       account: this.config.account || '',
       username: this.config.username || '',
@@ -226,7 +284,7 @@ export class SnowflakeClient {
     if (!this.isConfigured()) {
       return {
         success: false,
-        error: 'Snowflake credentials missing (SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, or SNOWFLAKE_PASSWORD not set).',
+        error: 'Snowflake not configured. Locally: set SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD in server/.env. Inside App Runtime: OAuth token is injected automatically.',
       };
     }
 

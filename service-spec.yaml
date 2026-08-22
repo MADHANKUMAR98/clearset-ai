@@ -1,0 +1,43 @@
+# ClearSet AI — SPCS Service Specification
+# Deploy with:
+#   CREATE SERVICE CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI
+#     IN COMPUTE POOL <pool_name>
+#     FROM SPECIFICATION $$<contents of this file>$$
+#     QUERY_WAREHOUSE = COMPUTE_WH;
+#
+# Replace <IMAGE_URL> with the full registry path after docker push, e.g.:
+#   ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+
+spec:
+  containers:
+    - name: clearset-ai
+      image: ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+      resources:
+        requests:
+          cpu: "0.5"
+          memory: 512M
+        limits:
+          cpu: "1"
+          memory: 1G
+      env:
+        # Port SPCS will route ingress traffic to
+        PORT: "8080"
+        # Snowflake injects SNOWFLAKE_HOST and SNOWFLAKE_ACCOUNT automatically.
+        # The OAuth token is written to /snowflake/session/token by SPCS.
+        # No passwords or PATs are configured here.
+        SNOWFLAKE_DATABASE: "CLEARSET_DB"
+        SNOWFLAKE_SCHEMA: "CLEARSET_SCHEMA"
+        SNOWFLAKE_WAREHOUSE: "COMPUTE_WH"
+        SNOWFLAKE_ROLE: "ACCOUNTADMIN"
+      readinessProbe:
+        port: 8080
+        path: /api/health
+
+  endpoints:
+    - name: clearset-ui
+      port: 8080
+      public: true
+
+  # No external access integrations are declared.
+  # Cortex Analyst REST is called via SNOWFLAKE_HOST (Snowflake-internal network)
+  # using the injected OAuth token — no EAI required from inside SPCS.

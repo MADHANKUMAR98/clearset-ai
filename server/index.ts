@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import type { IncomingHttpHeaders } from 'http';
@@ -17,11 +18,27 @@ dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
 import { snowflakeClient } from './snowflakeClient.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Production (Snowflake App Runtime) expects port 8080.
+// Local development continues on 3001 via .env PORT=3001.
+const PORT = process.env.PORT || 8080;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ============================================================================
+// STATIC FILE SERVING (production)
+// In Snowflake App Runtime the Express process serves both the React SPA and
+// the /api/* endpoints.  The Vite build output lives at ../dist relative to
+// server/dist/index.js (or ../dist relative to server/index.ts in dev).
+// In local development the Vite dev-server proxy handles /api → Express, so
+// this block is simply never reached for the front-end assets.
+// ============================================================================
+const DIST_DIR = path.resolve(__dirname, path.basename(__dirname) === 'dist' ? '../../dist' : '../dist');
+if (fs.existsSync(DIST_DIR) && fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+  app.use(express.static(DIST_DIR));
+  console.log(`[ClearSet Backend] Serving React frontend from ${DIST_DIR}`);
+}
 
 // ============================================================================
 // UTILITY HELPERS
@@ -578,11 +595,29 @@ app.post('/api/cortex/search', async (req: Request, res: Response) => {
 
 // ============================================================================
 // Cortex Analyst REST helpers
-// Authentication: Snowflake Programmatic Access Token (PAT).
-// Set SNOWFLAKE_PAT in server/.env.
-// Generate in Snowsight: Admin → Users & Roles → <user> → Programmatic
-// access tokens → Generate new token.
+// Authentication strategy:
+//   SNOWFLAKE APP RUNTIME: Snowflake injects an OAuth token at
+//     /snowflake/session/token inside the container. We use that token with
+//     X-Snowflake-Authorization-Token-Type: OAUTH — no credentials needed.
+//   LOCAL DEVELOPMENT: Falls back to SNOWFLAKE_PAT from server/.env.
 // ============================================================================
+
+/**
+ * Reads the Snowflake-injected OAuth token from /snowflake/session/token.
+ * Returns null if the file does not exist (i.e. running outside SPCS/App Runtime).
+ * The token rotates every few minutes; read it fresh on every request.
+ */
+function readSpcsOAuthToken(): string | null {
+  const TOKEN_PATH = '/snowflake/session/token';
+  try {
+    if (fs.existsSync(TOKEN_PATH)) {
+      return fs.readFileSync(TOKEN_PATH, 'utf8').trim();
+    }
+  } catch {
+    // Not inside SPCS — expected in local development
+  }
+  return null;
+}
 
 interface CortexAnalystDiagnostic {
   requestUrl: string;
@@ -615,15 +650,22 @@ function relevantSnowflakeHeaders(headers: IncomingHttpHeaders): Record<string, 
 
 async function callCortexAnalystRest(question: string): Promise<any> {
     const account = (process.env.SNOWFLAKE_ACCOUNT || '').toLowerCase();
+
+    // Prefer Snowflake-injected OAuth token (inside App Runtime / SPCS).
+    // Fall back to PAT for local development.
+    const spcsToken = readSpcsOAuthToken();
     const pat = process.env.SNOWFLAKE_PAT || '';
 
-    if (!pat) {
+    if (!spcsToken && !pat) {
       throw new Error(
-        'SNOWFLAKE_PAT is not set. Generate a Programmatic Access Token in Snowsight ' +
-        '(Admin → Users & Roles → your user → Programmatic access tokens → Generate new token) ' +
-        'and add it to server/.env as SNOWFLAKE_PAT=<token>.',
+        'No Cortex Analyst credential available. ' +
+        'Inside Snowflake App Runtime the OAuth token is injected automatically. ' +
+        'For local development, set SNOWFLAKE_PAT in server/.env.',
       );
     }
+
+    const authToken = spcsToken ?? pat;
+    const tokenType = spcsToken ? 'OAUTH' : 'PROGRAMMATIC_ACCESS_TOKEN';
 
     const requestBody = {
       messages: [
@@ -642,15 +684,17 @@ async function callCortexAnalystRest(question: string): Promise<any> {
     const body = JSON.stringify(requestBody);
 
     const options: https.RequestOptions = {
-      hostname: `${account}.snowflakecomputing.com`,
+      // Inside SPCS: use SNOWFLAKE_HOST (Snowflake-internal network — no EAI needed).
+      // Locally: fall back to the public account hostname.
+      hostname: process.env.SNOWFLAKE_HOST || `${account}.snowflakecomputing.com`,
       port: 443,
       path: '/api/v2/cortex/analyst/message',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
-        Authorization: `Bearer ${pat}`,
-        'X-Snowflake-Authorization-Token-Type': 'PROGRAMMATIC_ACCESS_TOKEN',
+        Authorization: `Bearer ${authToken}`,
+        'X-Snowflake-Authorization-Token-Type': tokenType,
         Accept: 'application/json',
         'User-Agent': 'ClearSetAI/1.0',
       },
@@ -836,6 +880,18 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+// ============================================================================
+// SPA catch-all (production only)
+// Any request that did not match an /api/* route is served as index.html so
+// that client-side React Router navigation works correctly.
+// Only enabled when the dist/ directory exists (i.e. after `npm run build`).
+// ============================================================================
+if (fs.existsSync(DIST_DIR) && fs.existsSync(path.join(DIST_DIR, 'index.html'))) {
+  app.get('*', (_req: Request, res: Response) => {
+    res.sendFile(path.join(DIST_DIR, 'index.html'));
+  });
+}
+
 process.on('uncaughtException', (err) => {
   console.error('[ClearSet Backend] Uncaught exception:', err);
   process.exit(1);
@@ -846,7 +902,8 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const server = app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`[ClearSet Backend] Server running on http://localhost:${PORT}`);
+  console.log(`[ClearSet Backend] Server running on port ${PORT}`);
+  console.log(`[ClearSet Backend] Mode: ${readSpcsOAuthToken() ? 'SNOWFLAKE APP RUNTIME (OAuth)' : 'LOCAL (password/PAT)'}`);
   console.log(
     `[ClearSet Backend] Snowflake Configured: ${snowflakeClient.isConfigured() ? 'YES' : 'NO (Local Fallback Active)'}`,
   );

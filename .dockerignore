@@ -1,0 +1,34 @@
+# Secrets — never bake into image
+.env
+.env.*
+server/.env
+server/.env.*
+
+# Source and devDependencies — not needed in image (pre-built strategy)
+node_modules
+server/node_modules
+src
+server/index.ts
+server/snowflakeClient.ts
+server/tsconfig.json
+
+# Dev/tooling
+.git
+.gitignore
+.kiro
+snowflake.log
+server/snowflake.log
+*.log
+
+# Deployment config files (not needed at runtime)
+snowflake.yml
+app.yml
+service-spec.yaml
+Dockerfile
+.dockerignore
+
+# Snowflake skill/config dirs
+.snowflake/cortex/conversations
+.snowflake/cortex/cache
+.snowflake/cortex/remote_cache
+.snowflake/cortex/logs
