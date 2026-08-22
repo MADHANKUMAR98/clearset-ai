@@ -35,14 +35,14 @@ CoCo will auto-select this skill when the prompt clearly matches its description
 You can also invoke it explicitly:
 
 ```
-$investigate-settlement-exception TRD-92831
+$investigate-settlement-exception <TRADE_ID>
 ```
 
 Or ask in plain language:
 
-> "Investigate settlement exception TRD-92831"
+> "Investigate settlement exception <TRADE_ID>"
 > "Run a settlement investigation for the highest-risk open exception"
-> "Why is TRD-92831 critical?"
+> "Why is <TRADE_ID> critical?"
 
 ---
 
@@ -59,7 +59,7 @@ node --import tsx index.ts
 
 Alternatively, run the bundled demonstration script which exercises all steps end-to-end:
 ```bash
-node .kiro/skills/investigate-settlement-exception/scripts/run_investigation.mjs TRD-92831
+node .kiro/skills/investigate-settlement-exception/scripts/run_investigation.mjs <TRADE_ID>
 ```
 
 > Note: The demonstration script lives under `.kiro/skills/` because it was created

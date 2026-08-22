@@ -1,0 +1,22 @@
+-- ============================================================================
+-- CLEARSET AI — RESOLUTION CASES TABLE
+-- Stores human-approved resolution cases for audit trail and governance
+-- ============================================================================
+
+CREATE OR REPLACE TABLE CLEARSET_DB.CLEARSET_SCHEMA.RESOLUTION_CASES (
+    CASE_ID VARCHAR(50) PRIMARY KEY,
+    TRADE_ID VARCHAR(50) NOT NULL,
+    EXCEPTION_ID VARCHAR(50),
+    STATUS VARCHAR(50) NOT NULL,
+    RISK_SCORE INT NOT NULL,
+    ROOT_CAUSE TEXT NOT NULL,
+    RECOMMENDATION TEXT NOT NULL,
+    RESOLUTION_OUTCOME TEXT,
+    APPROVED_BY VARCHAR(100),
+    APPROVED_AT TIMESTAMP_NTZ,
+    CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    UPDATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- Grant access for application role (to be created)
+-- GRANT SELECT, INSERT ON CLEARSET_DB.CLEARSET_SCHEMA.RESOLUTION_CASES TO ROLE CLEARSET_APP_ROLE;

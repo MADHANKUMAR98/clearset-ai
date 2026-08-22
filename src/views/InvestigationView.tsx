@@ -15,11 +15,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { 
-  SETTLEMENT_INSTRUCTIONS, 
-  HISTORICAL_CASES_TRD92831, 
-  HISTORICAL_SUMMARY_TRD92831 
+  SETTLEMENT_INSTRUCTIONS 
 } from '../data/syntheticData';
 import { POLICY_DOCUMENTS } from '../data/knowledgeBase';
+import { calculateSettlementRisk } from '../engine/riskEngine';
 
 export const InvestigationView: React.FC = () => {
   const { 
@@ -39,7 +38,7 @@ export const InvestigationView: React.FC = () => {
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [customNote, setCustomNote] = useState('');
-  const [selectedHistoricalCase, setSelectedHistoricalCase] = useState(HISTORICAL_CASES_TRD92831[0]);
+  const [selectedHistoricalCase, setSelectedHistoricalCase] = useState<HistoricalCase | null>(null);
 
   if (!activeException) {
     return (
@@ -51,7 +50,7 @@ export const InvestigationView: React.FC = () => {
 
   const trade = activeException.trade;
   // SSI: use live data from context (loaded via settlementService); fall back to local dict.
-  const ssi = activeSettlementInstruction ?? SETTLEMENT_INSTRUCTIONS[trade.id] ?? SETTLEMENT_INSTRUCTIONS['TRD-92831'];
+  const ssi = activeSettlementInstruction ?? SETTLEMENT_INSTRUCTIONS[trade.id] ?? null;
   // Settlement events: use live data from context (fetched via settlementService on trade change).
   const settlementEvents = activeSettlementEvents.length > 0 ? activeSettlementEvents : [];
   const sop = POLICY_DOCUMENTS[0];
@@ -112,6 +111,20 @@ export const InvestigationView: React.FC = () => {
             </div>
           </div>
 
+          {/* Provenance Badge */}
+          <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-rose-500/20">
+            <span className="text-[10px] font-mono text-slate-400">Data Source:</span>
+            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+              backendMode === 'live'
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+            }`}>
+              {backendMode === 'live' ? 'LIVE SNOWFLAKE' : 'LOCAL FALLBACK'}
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">|</span>
+            <span className="text-[10px] font-mono text-emerald-400 font-bold">DETERMINISTIC COMPUTATION</span>
+          </div>
+
           {/* Action Trigger */}
           <div className="flex items-center space-x-3">
             {!hasStarted ? (
@@ -152,9 +165,19 @@ export const InvestigationView: React.FC = () => {
               Click factor to inspect evidence ↓
             </span>
           </div>
-          <span className="text-xs font-mono font-bold text-rose-300 bg-rose-500/20 px-3 py-1 rounded-lg border border-rose-500/40 w-fit">
-            EXACT SCORE: {activeException.riskScore.totalScore}/100 (CRITICAL)
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-mono font-bold text-rose-300 bg-rose-500/20 px-3 py-1 rounded-lg border border-rose-500/40 w-fit">
+              EXACT SCORE: {activeException.riskScore.totalScore}/100 (CRITICAL)
+            </span>
+            {backendMode === 'live' && activeException.riskScore.totalScore !== calculateSettlementRisk(trade).totalScore && (
+              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                <span>⚠</span>
+                <span>Live Snowflake: {activeException.riskScore.totalScore}</span>
+                <span>|</span>
+                <span>Deterministic: {calculateSettlementRisk(trade).totalScore}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -380,49 +403,18 @@ export const InvestigationView: React.FC = () => {
                 <div className="space-y-3">
                   <div className="p-3 rounded-xl bg-[#162032] border border-slate-700 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div>
-                      <span className="font-bold text-white font-mono">{HISTORICAL_SUMMARY_TRD92831.totalFound} Similar Historical Cases Found</span>
+                      <span className="font-bold text-white font-mono">Historical Cases</span>
                       <div className="text-[11px] text-slate-400">
-                        Apex Prime Clearing (CP-192) • Missing SSI • US Equities DVP
+                        {trade.counterparty.name} ({trade.counterparty.id}) • {activeException.exceptionType} • {trade.security.assetClass} {trade.settlementType}
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-3 text-xs font-mono">
-                      <span className="text-emerald-400 font-bold">12 Corrected (66.7%)</span>
-                      <span className="text-amber-400 font-bold">4 Escalated (22.2%)</span>
-                      <span className="text-rose-400 font-bold">2 Failed (11.1%)</span>
+                    <div className="text-xs font-mono text-slate-400">
+                      Historical case data not available for this trade. Enable Cortex Search integration for live lookup.
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    {HISTORICAL_CASES_TRD92831.slice(0, 3).map((item) => (
-                      <div
-                        key={item.caseId}
-                        onClick={() => setSelectedHistoricalCase(item)}
-                        className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-colors ${
-                          selectedHistoricalCase.caseId === item.caseId
-                            ? 'bg-[#1C2A44] border-cyan-500/50 shadow'
-                            : 'bg-[#162032] border-slate-700 hover:bg-[#1B273F]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-slate-200">{item.caseId} ({item.tradeId})</span>
-                          <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
-                            item.outcome === 'RESOLVED_SUCCESS'
-                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                              : item.outcome === 'ESCALATED'
-                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                              : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                          }`}>
-                            {item.outcome}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-300 mt-1">{item.rootCause}</div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-1 flex items-center justify-between">
-                          <span>Resolution Time: {item.timeToResolutionHours}h</span>
-                          <span className="text-emerald-400 font-bold">Avoided ${item.csdrPenaltyAvoided.toLocaleString()}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="p-3 rounded-lg bg-[#162032] border border-slate-700 text-slate-300 text-xs">
+                    Historical case matching requires live Snowflake HISTORICAL_CASES table or Cortex Search integration.
+                    In local fallback mode, only TRD-92831 demo cases are available.
                   </div>
                 </div>
               )}
@@ -558,7 +550,22 @@ export const InvestigationView: React.FC = () => {
                   Primary Failure Cause:
                 </span>
                 <span className="font-semibold text-rose-300">
-                  Missing Standing Settlement Instruction (SSI) for DTC Participant 0244 subaccount.
+                  {(() => {
+                    if (activeException.exceptionType === 'Missing Instruction') {
+                      return `Missing Standing Settlement Instruction (SSI) for ${trade.counterparty.name} at ${trade.security.depository}.`;
+                    } else if (activeException.exceptionType === 'Cash Discrepancy') {
+                      return `Cash amount mismatch between trade ticket and settlement affirmation.`;
+                    } else if (activeException.exceptionType === 'Securities Shortage') {
+                      return `Insufficient securities inventory for settlement.`;
+                    } else if (activeException.exceptionType === 'Counterparty Fail Risk') {
+                      return `Counterparty ${trade.counterparty.name} has elevated failure risk.`;
+                    } else if (activeException.exceptionType === 'Cutoff Approaching') {
+                      return `Settlement cutoff deadline approaching with incomplete processing.`;
+                    } else if (activeException.exceptionType === 'Depository Reject') {
+                      return `Depository rejected settlement instruction.`;
+                    }
+                    return 'Undetermined settlement exception.';
+                  })()}
                 </span>
               </div>
 
@@ -567,27 +574,36 @@ export const InvestigationView: React.FC = () => {
                   Contributing Factors:
                 </span>
                 <ul className="space-y-1 text-slate-300 text-[11px]">
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-amber-400 font-bold">•</span>
-                    <span>Counterparty Apex Prime Clearing (CP-192) has 7 prior settlement failures in past 30 days.</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-amber-400 font-bold">•</span>
-                    <span>DTC Cutoff approaching in 1h 42m (15:30 EST).</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-amber-400 font-bold">•</span>
-                    <span>High-value exposure of $2.4M exceeding operations threshold.</span>
-                  </li>
-                  <li className="flex items-start gap-1.5">
-                    <span className="text-amber-400 font-bold">•</span>
-                    <span>
-                      18 similar historical cases required early escalation to prevent end-of-day depository reject.
-                      {backendMode === 'live' && (
-                        <span className="ml-1 text-[10px] text-slate-500 font-mono">(illustrative — simulation estimate)</span>
-                      )}
-                    </span>
-                  </li>
+                  {trade.counterparty.priorFailures > 0 && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>Counterparty {trade.counterparty.name} ({trade.counterparty.id}) has {trade.counterparty.priorFailures} prior settlement failures in past 30 days ({trade.counterparty.historicalFailRate}% fail rate).</span>
+                    </li>
+                  )}
+                  {trade.cutoffMinutesRemaining <= 240 && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>Depository cutoff approaching in {Math.floor(trade.cutoffMinutesRemaining / 60)}h {trade.cutoffMinutesRemaining % 60}m ({trade.cutoffTime}).</span>
+                    </li>
+                  )}
+                  {trade.tradeValue >= 1000000 && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>High-value exposure of ${(trade.tradeValue / 1000000).toFixed(1)}M exceeding operations threshold.</span>
+                    </li>
+                  )}
+                  {trade.counterparty.priorFailures >= 5 && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>Counterparty classified as high-friction operator; historical precedent suggests early escalation required.</span>
+                    </li>
+                  )}
+                  {!trade.counterparty.priorFailures && trade.tradeValue < 1000000 && trade.cutoffMinutesRemaining > 240 && (
+                    <li className="flex items-start gap-1.5">
+                      <span className="text-amber-400 font-bold">•</span>
+                      <span>No significant contributing risk factors identified beyond primary failure cause.</span>
+                    </li>
+                  )}
                 </ul>
               </div>
             </div>
@@ -601,28 +617,75 @@ export const InvestigationView: React.FC = () => {
                 AI Recommended Resolution Protocol
               </h3>
               <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">
-                SOP §3.2 Aligned
+                SOP Aligned
               </span>
             </div>
 
             <div className="space-y-2 text-xs">
               <div className="font-bold text-white text-sm">
-                Request corrected settlement instruction and escalate to Settlement Operations desk.
+                {(() => {
+                  if (activeException.exceptionType === 'Missing Instruction') {
+                    return `Request corrected settlement instruction and escalate to Settlement Operations desk.`;
+                  } else if (activeException.exceptionType === 'Cash Discrepancy') {
+                    return `Execute cash variance adjustment and verify with counterparty.`;
+                  } else if (activeException.exceptionType === 'Securities Shortage') {
+                    return `Initiate securities borrowing or buy-in procedure.`;
+                  } else if (activeException.exceptionType === 'Counterparty Fail Risk') {
+                    return `Escalate to counterparty relationship manager and operations lead.`;
+                  } else if (activeException.exceptionType === 'Cutoff Approaching') {
+                    return `Accelerate settlement processing and monitor depository queue.`;
+                  } else if (activeException.exceptionType === 'Depository Reject') {
+                    return `Analyze reject reason and dispatch corrective instruction.`;
+                  }
+                  return 'Review exception details and determine resolution path.';
+                })()}
               </div>
 
-              <div className="space-y-1.5 pt-1">
-                <div className="p-2.5 rounded-lg bg-[#162032] border border-slate-700 text-slate-200 font-mono text-[11px]">
-                  1. Dispatch automated SWIFT MT599 repair notification to CP-192 Equities Clearing Desk.
-                </div>
-                <div className="p-2.5 rounded-lg bg-[#162032] border border-slate-700 text-slate-200 font-mono text-[11px]">
-                  2. Escalate trade TRD-92831 to Settlement Operations Lead (Tier 1 Priority: Cutoff &lt; 120m, Value &gt; $1M).
-                </div>
-                <div className="p-2.5 rounded-lg bg-[#162032] border border-slate-700 text-slate-200 font-mono text-[11px]">
-                  3. Continuously monitor depository gateway for DTC Participant 0244 affirmation message.
-                </div>
-                <div className="p-2.5 rounded-lg bg-[#162032] border border-slate-700 text-slate-200 font-mono text-[11px]">
-                  4. Reassess deterministic settlement risk score immediately upon receiving confirmed SSI.
-                </div>
+              <div className="              <div className="space-y-1.5 pt-1">
+                {(() => {
+                  const steps: string[] = [];
+                  if (activeException.exceptionType === 'Missing Instruction') {
+                    steps.push(`1. Dispatch automated SWIFT MT599 repair notification to ${trade.counterparty.name} (${trade.counterparty.primaryContact.desk}).`);
+                    steps.push(`2. Escalate trade ${trade.id} to Settlement Operations Lead (Tier 1 Priority: Cutoff < 120m, Value > $1M).`);
+                    steps.push(`3. Continuously monitor depository gateway for ${trade.security.depository} affirmation message.`);
+                    steps.push(`4. Reassess deterministic settlement risk score immediately upon receiving confirmed SSI.`);
+                  } else if (activeException.exceptionType === 'Cash Discrepancy') {
+                    steps.push(`1. Calculate cash variance and verify against SOP threshold.`);
+                    steps.push(`2. Dispatch variance adjustment request to ${trade.counterparty.name}.`);
+                    steps.push(`3. Escalate to Operations Lead if variance exceeds $10k threshold.`);
+                    steps.push(`4. Confirm adjusted amount and reassess settlement risk.`);
+                  } else if (activeException.exceptionType === 'Securities Shortage') {
+                    steps.push(`1. Initiate securities borrowing from internal inventory or lending desk.`);
+                    steps.push(`2. Execute buy-in procedure if borrowing unavailable.`);
+                    steps.push(`3. Notify ${trade.counterparty.name} of potential settlement delay.`);
+                    steps.push(`4. Monitor delivery and reassess risk upon confirmation.`);
+                  } else if (activeException.exceptionType === 'Counterparty Fail Risk') {
+                    steps.push(`1. Escalate to Counterparty Relationship Manager for ${trade.counterparty.name}.`);
+                    steps.push(`2. Engage Settlement Operations Lead for Tier 1 escalation.`);
+                    steps.push(`3. Activate contingency settlement instructions if available.`);
+                    steps.push(`4. Monitor counterparty response and depository status continuously.`);
+                  } else if (activeException.exceptionType === 'Cutoff Approaching') {
+                    steps.push(`1. Accelerate settlement instruction validation for ${trade.id}.`);
+                    steps.push(`2. Escalate to Operations Lead for priority processing.`);
+                    steps.push(`3. Monitor ${trade.security.depository} queue position continuously.`);
+                    steps.push(`4. Confirm settlement completion before cutoff.`);
+                  } else if (activeException.exceptionType === 'Depository Reject') {
+                    steps.push(`1. Analyze depository reject code and description.`);
+                    steps.push(`2. Dispatch corrective SWIFT message to ${trade.counterparty.name}.`);
+                    steps.push(`3. Escalate to Operations Lead for manual intervention if needed.`);
+                    steps.push(`4. Re-validate and re-submit settlement instruction.`);
+                  } else {
+                    steps.push(`1. Review exception details and determine root cause.`);
+                    steps.push(`2. Consult applicable SOP for resolution procedure.`);
+                    steps.push(`3. Escalate to Operations Lead as appropriate.`);
+                    steps.push(`4. Monitor resolution and reassess risk.`);
+                  }
+                  return steps.map((step, i) => (
+                    <div key={i} className="p-2.5 rounded-lg bg-[#162032] border border-slate-700 text-slate-200 font-mono text-[11px]">
+                      {step}
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
 
@@ -681,7 +744,7 @@ export const InvestigationView: React.FC = () => {
                   Counterparty: <strong className="text-white">{trade.counterparty.name}</strong> ({trade.counterparty.bic})
                 </div>
                 <div className="font-mono text-emerald-400">
-                  Projected CSDR Penalty Avoided: <strong>$1,566.67/day</strong>
+                  Projected CSDR Penalty Avoided: <strong>${((trade.tradeValue * 0.00065) / 365).toFixed(2)}/day</strong>
                 </div>
               </div>
 
@@ -693,7 +756,7 @@ export const InvestigationView: React.FC = () => {
                   rows={3}
                   value={customNote}
                   onChange={(e) => setCustomNote(e.target.value)}
-                  placeholder="e.g. Verified with CP-192 desk lead Marcus Vance; authorized automated SWIFT repair under SOP §3.2."
+                  placeholder={`e.g. Verified with ${trade.counterparty.primaryContact.name} (${trade.counterparty.primaryContact.desk}); authorized automated SWIFT repair under SOP §3.2.`}
                   className="w-full bg-[#162032] border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
                 />
               </div>

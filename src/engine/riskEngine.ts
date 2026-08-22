@@ -4,7 +4,7 @@ import type { ExceptionSeverity, RiskFactor, RiskScoreBreakdown, Trade } from '.
  * Deterministic, explainable post-trade settlement risk engine.
  * Computes exact point-by-point score based on empirical risk dimensions.
  */
-export function calculateSettlementRisk(trade: Trade): RiskScoreBreakdown {
+export function calculateSettlementRisk(trade: Trade, options?: { historicalPrecedentPoints?: number }): RiskScoreBreakdown {
   const factors: RiskFactor[] = [];
   let totalScore = 0;
 
@@ -143,15 +143,21 @@ export function calculateSettlementRisk(trade: Trade): RiskScoreBreakdown {
   }
 
   // 5. Historical Pattern & Precedent Severity (+6 for matching failure-prone historical patterns)
+  // Note: Snowflake's pre-computed RISK_SCORE uses varying historical precedent scores (6, 10, 11)
+  // based on actual historical case similarity analysis. This deterministic calculation
+  // uses a fixed +6 as a baseline approximation.
+  const historicalPrecedentPoints = options?.historicalPrecedentPoints ?? 6;
   factors.push({
     category: 'Institutional Memory',
     factor: 'Historical Failure Pattern Precedent',
-    points: 6,
+    points: historicalPrecedentPoints,
     severity: 'MEDIUM',
-    explanation: 'ClearSet Snowflake historical repository matched 18 prior similar cases where lack of timely repair resulted in depository reject.',
+    explanation: historicalPrecedentPoints === 6
+      ? 'ClearSet deterministic baseline: matched prior similar cases where lack of timely repair resulted in depository reject.'
+      : `Snowflake live risk score uses ${historicalPrecedentPoints} points based on actual historical case similarity analysis.`,
     iconName: 'History',
   });
-  totalScore += 6;
+  totalScore += historicalPrecedentPoints;
 
   // Cap score at 100
   totalScore = Math.min(100, Math.max(0, totalScore));

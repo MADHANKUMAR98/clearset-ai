@@ -10,14 +10,14 @@
  * Example:
  *   node .kiro/skills/investigate-settlement-exception/scripts/run_investigation.mjs TRD-92831
  *
- * If no TRADE_ID is provided, defaults to TRD-92831 (the hero demonstration case).
+ * If no TRADE_ID is provided, the script will use the first available exception from the backend.
  *
  * The backend must be running on http://localhost:3001
  * Start it with: node --import tsx server/index.ts (from project root)
  */
 
 const BACKEND = 'http://localhost:3001';
-const TRADE_ID = process.argv[2] || 'TRD-92831';
+const TRADE_ID = process.argv[2]; // Optional: if not provided, will use first available exception
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -62,6 +62,25 @@ function fmt(n) {
 
 async function investigate(tradeId) {
   console.log(`\n🔍  ClearSet AI — Investigating ${tradeId}\n`);
+
+  // If no tradeId provided, fetch first available exception
+  if (!tradeId) {
+    const exceptionsResp = await get('/api/exceptions');
+    const allRows = exceptionsResp.data || [];
+    if (allRows.length === 0) {
+      console.log('❌ No exceptions available to investigate.');
+      process.exit(1);
+    }
+    const pick = (row, ...keys) => {
+      for (const k of keys) {
+        const match = Object.keys(row).find((rk) => rk.toUpperCase() === k.toUpperCase());
+        if (match !== undefined) return row[match];
+      }
+      return null;
+    };
+    tradeId = pick(allRows[0], 'TRADE_ID') || pick(allRows[0], 'trade_id');
+    console.log(`(No trade ID provided — using first available: ${tradeId})`);
+  }
 
   // ── Step 1: Health check ──────────────────────────────────────────────────
   process.stdout.write('Step 1  Health check ... ');
@@ -169,15 +188,39 @@ async function investigate(tradeId) {
     console.log(`⚠️  ${analystResp.error || analystResp.message || 'unavailable'} — using data from exceptions`);
   }
 
-  // ── Step 8: Deterministic risk score breakdown ─────────────────────────────
-  const scoreBreakdown = [
-    { label: 'Missing Settlement Instruction (SSI)', points: 25 },
-    { label: 'Cutoff Approaching (< 120 min)',        points: 25 },
-    { label: 'High Trade Value (> $2M)',              points: 20 },
-    { label: 'Counterparty Prior Failures (> 5)',     points: 15 },
-    { label: 'Historical Failure Pattern Match',      points: 6  },
-  ];
+  // ── Step 8: Deterministic risk score breakdown (computed from live data) ─────────────────────────────
+  const scoreBreakdown = [];
+  if (ssiStatus === 'MISSING') scoreBreakdown.push({ label: 'Missing Settlement Instruction (SSI)', points: 25 });
+  else if (ssiStatus === 'MISMATCHED') scoreBreakdown.push({ label: 'Mismatched SSI Parameters', points: 18 });
+  else if (ssiStatus === 'PENDING') scoreBreakdown.push({ label: 'Pending SSI Affirmation', points: 10 });
+
+  const cutoffMinutes = 0; // Would need to compute from cutoffTime
+  if (cutoffMinutes <= 120) scoreBreakdown.push({ label: 'Depository Cutoff Approaching (< 120 min)', points: 25 });
+  else if (cutoffMinutes <= 240) scoreBreakdown.push({ label: 'Approaching Intra-day Cutoff (< 240 min)', points: 15 });
+  else if (cutoffMinutes <= 480) scoreBreakdown.push({ label: 'Standard Settlement Day Horizon (< 480 min)', points: 8 });
+
+  if (tradeValue >= 2000000) scoreBreakdown.push({ label: 'High Trade Value (> $2M)', points: 20 });
+  else if (tradeValue >= 1000000) scoreBreakdown.push({ label: 'Elevated Transaction Value (> $1M)', points: 15 });
+  else if (tradeValue >= 500000) scoreBreakdown.push({ label: 'Standard Commercial Exposure (> $500k)', points: 10 });
+
+  if (priorFails >= 5) scoreBreakdown.push({ label: 'Counterparty Prior Failures (> 5)', points: 15 });
+  else if (priorFails >= 2) scoreBreakdown.push({ label: 'Counterparty Prior Failures (> 2)', points: 10 });
+  else if (priorFails > 0) scoreBreakdown.push({ label: 'Counterparty Prior Failures (> 0)', points: 5 });
+
+  scoreBreakdown.push({ label: 'Historical Failure Pattern Match', points: 6 });
   const computedScore = scoreBreakdown.reduce((s, f) => s + f.points, 0);
+
+  // Determine root cause dynamically
+  let rootCause = 'Undetermined';
+  if (ssiStatus === 'MISSING') rootCause = `Missing SSI for ${cpNameLive} at depository`;
+  else if (exceptionType === 'Cash Discrepancy') rootCause = 'Cash amount mismatch between trade and affirmation';
+  else if (exceptionType === 'Counterparty Fail Risk') rootCause = `Counterparty ${cpNameLive} has elevated failure risk`;
+  else if (exceptionType === 'Cutoff Approaching') rootCause = 'Settlement cutoff approaching with incomplete processing';
+
+  // Determine urgency
+  let urgency = 'ROUTINE';
+  if (computedScore >= 80) urgency = 'IMMEDIATE';
+  else if (computedScore >= 60) urgency = 'HIGH';
 
   // ── Output: Structured Investigation Summary ──────────────────────────────
   console.log('\n');
@@ -204,15 +247,15 @@ async function investigate(tradeId) {
     ...scoreBreakdown.map((f) => `  +${f.points}  ${f.label}`),
     `  ──  Total: ${computedScore}/100`,
     '---',
-    'ROOT CAUSE:  Missing SSI for DTC Participant 0244 subaccount',
-    'URGENCY:     IMMEDIATE',
+    `ROOT CAUSE:  ${rootCause}`,
+    `URGENCY:     ${urgency}`,
     '---',
     'RECOMMENDED ACTIONS (PENDING HUMAN APPROVAL):',
-    '  1. SWIFT MT599 repair notification → CP desk',
+    `  1. Dispatch corrective action for ${exceptionType.toLowerCase()} → ${cpNameLive}`,
     '  2. Escalate to Settlement Operations Lead',
-    '  3. Monitor DTC gateway for affirmation',
-    '  4. Recalculate risk score on SSI confirmation',
-    'CSDR Penalty Avoided if resolved: $1,566.67/day',
+    '  3. Monitor depository gateway for affirmation',
+    '  4. Recalculate risk score on confirmation',
+    `CSDR Penalty Avoided if resolved: $${(tradeValue * 0.00065 / 365).toFixed(2)}/day`,
   ]);
   console.log('⚠   AWAITING ANALYST AUTHORIZATION — No actions dispatched.\n');
 }

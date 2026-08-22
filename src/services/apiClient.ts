@@ -79,6 +79,50 @@ export interface CortexAnalystApiResponse {
   analystResponse?: unknown;
 }
 
+export interface CaseRecordApi {
+  caseId: string;
+  tradeId: string;
+  exceptionId: string | null;
+  status: string;
+  riskScore: number;
+  rootCause: string;
+  recommendation: string;
+  resolutionOutcome: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CasesApiResponse {
+  success: boolean;
+  mode: ApiMode;
+  data: CaseRecordApi[];
+  message?: string;
+  error?: string;
+}
+
+export interface CaseCreateRequest {
+  caseId: string;
+  tradeId: string;
+  exceptionId?: string;
+  status: string;
+  riskScore: number;
+  rootCause: string;
+  recommendation: string;
+  resolutionOutcome?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+}
+
+export interface CaseCreateApiResponse {
+  success: boolean;
+  mode: ApiMode;
+  caseId?: string;
+  message?: string;
+  error?: string;
+}
+
 // ============================================================================
 // /api/health
 // ============================================================================
@@ -225,12 +269,57 @@ export async function fetchCortexAnalyst(
       };
     }
     return payload;
+} catch {
+      return {
+        success: false,
+        mode: 'local',
+        data: [],
+        message: 'Cortex Analyst unavailable',
+      };
+}
+}
+
+// ============================================================================
+// POST /api/cases
+// ============================================================================
+export async function createCase(
+  caseData: CaseCreateRequest,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<CaseCreateApiResponse> {
+  try {
+    const payload = await fetchWithTimeout<CaseCreateApiResponse>(
+      '/api/cases',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(caseData),
+      },
+      timeoutMs,
+    );
+    if (!payload) {
+      return { success: false, mode: 'local', message: 'Case creation unavailable' };
+    }
+    return payload;
   } catch {
-    return {
-      success: false,
-      mode: 'local',
-      data: [],
-      message: 'Cortex Analyst unavailable',
-    };
+    return { success: false, mode: 'local', message: 'Case creation unavailable' };
   }
+}
+
+// ============================================================================
+// GET /api/cases
+// ============================================================================
+export async function fetchCases(
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<CasesApiResponse> {
+  try {
+    const payload = await fetchWithTimeout<CasesApiResponse>('/api/cases', {}, timeoutMs);
+    if (!payload || !Array.isArray(payload.data)) {
+      return { success: false, mode: 'local', data: [], message: 'Cases unavailable' };
+    }
+    return payload;
+  } catch {
+    return { success: false, mode: 'local', data: [], message: 'Cases unavailable' };
+  }
+}
+}
 }

@@ -25,8 +25,10 @@ import {
   fetchTradesFromApi,
   fetchCounterpartyFromApi,
   fetchSettlementEventsFromApi,
+  createCase,
 } from './apiClient';
 import { calculateSettlementRisk } from '../engine/riskEngine';
+import { pickColumn } from './types';
 
 // ============================================================================
 // LocalSettlementService — syntheticData fallback (must never be removed)
@@ -53,7 +55,7 @@ export class LocalSettlementService implements ISettlementService {
   }
 
   public async getSettlementInstruction(tradeId: string): Promise<SettlementInstruction | null> {
-    const ssi = SETTLEMENT_INSTRUCTIONS[tradeId] || SETTLEMENT_INSTRUCTIONS['TRD-92831'];
+    const ssi = SETTLEMENT_INSTRUCTIONS[tradeId];
     return ssi ? { ...ssi } : null;
   }
 
@@ -61,17 +63,9 @@ export class LocalSettlementService implements ISettlementService {
     if (tradeId === 'TRD-92831') {
       return [...SETTLEMENT_EVENTS_TRD92831];
     }
-    return [
-      {
-        id: `EVT-${tradeId}-1`,
-        tradeId,
-        timestamp: new Date().toISOString(),
-        messageType: 'INTERNAL_ALERT',
-        status: 'MONITORING',
-        description: `Trade ${tradeId} exception surveillance active.`,
-        source: 'CLEARSET_AGENT',
-      },
-    ];
+    // For other trades, return empty array (no synthetic events available)
+    // The live backend will be tried first via HybridSettlementService
+    return [];
   }
 
   public async getCounterparty(cpId: string): Promise<Counterparty | null> {
@@ -102,6 +96,7 @@ export class LocalSettlementService implements ISettlementService {
       criticalExceptions: criticalExceptions.length + 39, // Base critical queue + dynamic criticals
       highExceptions: highExceptions.length,
       totalExposureDollars: activeExposure + 72900000, // Dynamic active exposure + baseline firm queue
+      criticalExposureDollars: activeExposure + 72900000, // Local fallback includes baseline
       settlementRatePercent: settlementRate,
       avgTimeToResolveMinutes: 38,
       csdrPenaltiesAvoidedToday: totalPenaltiesAvoided,
@@ -529,14 +524,12 @@ class HybridSettlementService implements ISettlementService {
     try {
       const response = await fetchSettlementEventsFromApi(tradeId);
       if (response.success && response.mode === 'snowflake') {
-        if (response.data.length > 0) {
-          return response.data.map((row) => mapSnowflakeSettlementEventRow(row));
-        }
-        // Snowflake returned empty array — not an error, just no events yet
-        // Still fallback to local for TRD-92831 which has synthetic events
+        // Return whatever Snowflake returns (including empty array)
+        // Do not fall back to local synthetic data for specific trades
+        return response.data.map((row) => mapSnowflakeSettlementEventRow(row));
       }
     } catch {
-      // fall through to local
+      // fall through to local on error
     }
     return this.local.getSettlementEvents(tradeId);
   }
@@ -555,10 +548,76 @@ class HybridSettlementService implements ISettlementService {
   }
 
   public getDashboardMetrics(currentExceptions: ExceptionItem[], cases: CaseRecord[]): DashboardStats {
+    // Use live computation if we have live exceptions loaded
+    if (this.liveExceptions && this.liveExceptions.length > 0) {
+      return this.computeLiveDashboardMetrics(this.liveExceptions, cases);
+    }
     return this.local.getDashboardMetrics(currentExceptions, cases);
   }
 
+  /**
+   * Compute dashboard metrics entirely from live Snowflake data.
+   * No artificial baselines or offsets.
+   */
+  private computeLiveDashboardMetrics(liveExceptions: ExceptionItem[], cases: CaseRecord[]): DashboardStats {
+    const openExceptions = liveExceptions.filter((e) => e.status !== 'RESOLVED');
+    const criticalExceptions = openExceptions.filter((e) => e.severity === 'CRITICAL');
+    const highExceptions = openExceptions.filter((e) => e.severity === 'HIGH');
+
+    // Gross exposure from live open exceptions only
+    const activeExposure = openExceptions.reduce((sum, e) => sum + e.trade.tradeValue, 0);
+
+    // Critical exposure from live critical exceptions only
+    const criticalExposure = criticalExceptions.reduce((sum, e) => sum + e.trade.tradeValue, 0);
+
+    // Total trades monitored — from live data if available, else use known baseline
+    const totalTrades = 128420; // This is a static operational metric, not derived from exceptions
+
+    // Settlement rate based on live data
+    const settlementRate = Number(((totalTrades - openExceptions.length) / totalTrades * 100).toFixed(2));
+
+    // Penalties avoided from persisted cases (Snowflake mode) + local cases
+    // In live mode, cases should include Snowflake-persisted cases
+    const totalPenaltiesAvoided = cases.length * 1566; // Per-case estimate
+
+    return {
+      totalTrades,
+      totalExceptions: openExceptions.length,
+      criticalExceptions: criticalExceptions.length,
+      highExceptions: highExceptions.length,
+      totalExposureDollars: activeExposure,
+      criticalExposureDollars: criticalExposure,
+      settlementRatePercent: settlementRate,
+      avgTimeToResolveMinutes: 38, // Static operational metric
+      csdrPenaltiesAvoidedToday: totalPenaltiesAvoided,
+    };
+  }
+
   public async resolveException(tradeId: string, caseRecord: CaseRecord): Promise<boolean> {
+    // If in live Snowflake mode, persist the case to Snowflake
+    if (this.liveExceptions && this.liveExceptions.length > 0) {
+      try {
+        const exception = this.liveExceptions.find((e) => e.tradeId === tradeId);
+        const exceptionId = exception?.id ?? `EX-${tradeId.replace('TRD-', '')}`;
+
+        await createCase({
+          caseId: caseRecord.caseId,
+          tradeId,
+          exceptionId,
+          status: caseRecord.humanDecision === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+          riskScore: caseRecord.riskScore,
+          rootCause: caseRecord.rootCause,
+          recommendation: caseRecord.aiRecommendation,
+          resolutionOutcome: caseRecord.resolutionOutcome,
+          approvedBy: caseRecord.approvedBy,
+          approvedAt: caseRecord.approvedAt,
+        });
+      } catch (err) {
+        // Log but don't fail the UI — case remains in local state
+        console.warn('[ClearSet] Failed to persist case to Snowflake:', err);
+      }
+    }
+
     if (this.liveExceptions) {
       this.liveExceptions = this.liveExceptions.map((item) =>
         item.tradeId === tradeId ? { ...item, status: 'RESOLVED' } : item,

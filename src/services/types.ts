@@ -18,6 +18,7 @@ export interface DashboardStats {
   criticalExceptions: number;
   highExceptions: number;
   totalExposureDollars: number;
+  criticalExposureDollars: number;
   settlementRatePercent: number;
   avgTimeToResolveMinutes: number;
   csdrPenaltiesAvoidedToday: number;

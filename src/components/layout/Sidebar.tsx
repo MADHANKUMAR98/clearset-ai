@@ -15,7 +15,7 @@ export const Sidebar: React.FC = () => {
   const { activeTab, setActiveTab, dashboardMetrics, cases, exceptions } = useApp();
 
   // Find the highest-risk unresolved exception for the priority triage box.
-  // Falls back to the hardcoded TRD-92831 display values if no exceptions are loaded yet.
+  // Shows "No active exceptions" if no exceptions are loaded yet.
   const priorityException =
     exceptions
       .filter((ex) => ex.status !== 'RESOLVED')
@@ -39,7 +39,7 @@ export const Sidebar: React.FC = () => {
       id: 'investigation',
       label: 'Investigation Workspace',
       icon: Sparkles,
-      badge: 'TRD-92831',
+      badge: priorityException ? priorityException.tradeId : '—',
       badgeColor: 'bg-rose-500/15 text-rose-300 border-rose-500/30 font-bold',
     },
     {
@@ -147,14 +147,13 @@ export const Sidebar: React.FC = () => {
                 <>
                   <div>
                     <div className="font-mono text-white font-bold text-xs flex items-center gap-1">
-                      <span>TRD-92831</span>
-                      <span className="text-[9px] font-normal text-rose-400 bg-rose-500/10 px-1 rounded">DVP</span>
+                      <span>No active exceptions</span>
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono">$2.4M • CP-192 (Apex)</div>
+                    <div className="text-[10px] text-slate-400 font-mono">All trades settling normally</div>
                   </div>
                   <div className="text-right">
-                    <span className="text-rose-400 font-bold font-mono text-xs">91</span>
-                    <div className="text-[9px] text-amber-400 font-mono">1h 42m</div>
+                    <span className="text-emerald-400 font-bold font-mono text-xs">—</span>
+                    <div className="text-[9px] text-slate-400 font-mono">—</div>
                   </div>
                 </>
               )}

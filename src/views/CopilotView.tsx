@@ -38,8 +38,8 @@ export const CopilotView: React.FC = () => {
 
   const samplePrompts = [
     'Show me critical settlement exceptions approaching cutoff.',
-    'Investigate TRD-92831.',
-    'Why is TRD-92831 critical?',
+    'Investigate the highest-risk exception.',
+    'Why is the top exception critical?',
     'What should I do according to our SOP?',
     'Have we seen this counterparty fail before?',
   ];
@@ -147,8 +147,9 @@ export const CopilotView: React.FC = () => {
                         <div className="flex items-center justify-between text-[11px] pt-1 text-amber-300">
                           <span>{msg.structuredData.tradeSummary.cutoff}</span>
                           <button
-                            onClick={() => selectExceptionForInvestigation(msg.structuredData?.tradeSummary?.id || 'TRD-92831')}
+                            onClick={() => selectExceptionForInvestigation(msg.structuredData?.tradeSummary?.id || '')}
                             className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center gap-1 text-[10px]"
+                            disabled={!msg.structuredData?.tradeSummary?.id}
                           >
                             <span>Open Workspace</span>
                             <ChevronRight className="w-3 h-3" />
@@ -204,9 +205,11 @@ export const CopilotView: React.FC = () => {
 
                           <button
                             onClick={() => {
-                              selectExceptionForInvestigation('TRD-92831');
+                              const tradeId = msg.structuredData?.counterparty?.id || msg.structuredData?.tradeSummary?.id;
+                              if (tradeId) selectExceptionForInvestigation(tradeId);
                             }}
                             className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[11px] flex items-center gap-1"
+                            disabled={!msg.structuredData?.counterparty?.id && !msg.structuredData?.tradeSummary?.id}
                           >
                             <span>Open Investigation</span>
                             <ChevronRight className="w-3 h-3" />
@@ -241,8 +244,12 @@ export const CopilotView: React.FC = () => {
                             )}
                           </span>
                           <button
-                            onClick={() => selectExceptionForInvestigation('TRD-92831', 'counterparty')}
+                            onClick={() => {
+                              const tradeId = msg.structuredData?.counterparty?.id || msg.structuredData?.tradeSummary?.id;
+                              if (tradeId) selectExceptionForInvestigation(tradeId, 'counterparty');
+                            }}
                             className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold text-[10px] flex items-center gap-1"
+                            disabled={!msg.structuredData?.counterparty?.id && !msg.structuredData?.tradeSummary?.id}
                           >
                             <span>Inspect Counterparty</span>
                             <ChevronRight className="w-3 h-3" />

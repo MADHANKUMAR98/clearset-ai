@@ -32,6 +32,7 @@ export const DashboardView: React.FC = () => {
   } = useApp();
 
   const criticalExceptions = exceptions.filter((ex) => ex.severity === 'CRITICAL' && ex.status !== 'RESOLVED');
+  const topCriticalException = criticalExceptions.sort((a, b) => b.riskScore.totalScore - a.riskScore.totalScore)[0];
 
   // Derive counterparty fail concentration from live exceptions data.
   // Group open exceptions by counterparty, using real priorFailures and tradeValue.
@@ -91,11 +92,14 @@ export const DashboardView: React.FC = () => {
           </button>
 
           <button
-            onClick={() => selectExceptionForInvestigation('TRD-92831')}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all hover:scale-[1.02]"
+            onClick={() => topCriticalException ? selectExceptionForInvestigation(topCriticalException.tradeId) : undefined}
+            disabled={!topCriticalException}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${topCriticalException 
+              ? 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-md shadow-rose-600/20' 
+              : 'bg-[#162032] text-slate-500 cursor-not-allowed'} text-xs font-bold transition-all hover:scale-[1.02]`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Investigate TRD-92831</span>
+            <span>{topCriticalException ? `Investigate ${topCriticalException.tradeId}` : 'No Critical Exceptions'}</span>
           </button>
         </div>
       </div>
@@ -155,7 +159,7 @@ export const DashboardView: React.FC = () => {
             </span>
           </div>
           <div className="mt-2 text-[11px] text-slate-400 font-mono">
-            Highest Score: <span className="text-rose-300 font-bold">91/100 (TRD-92831)</span>
+            Highest Score: <span className="text-rose-300 font-bold">{topCriticalException ? `${topCriticalException.riskScore.totalScore}/100 (${topCriticalException.tradeId})` : '—'}</span>
           </div>
         </div>
 

@@ -46,7 +46,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [exceptions, setExceptions] = useState<ExceptionItem[]>([]);
   const [cases, setCases] = useState<CaseRecord[]>(INITIAL_CASES);
-  const [activeExceptionId, setActiveExceptionId] = useState<string | null>('TRD-92831');
+  const [activeExceptionId, setActiveExceptionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [activeEvidenceTab, setActiveEvidenceTab] = useState<EvidenceTabType>('policy');
   const [investigationSteps, setInvestigationSteps] = useState<InvestigationStep[]>(cortexService.getInvestigationSteps());
@@ -106,13 +106,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'msg-1',
       sender: 'assistant',
       timestamp: '12:00:15',
-      text: 'Good afternoon. I am **ClearSet AI**, your post-trade operations copilot for settlement exception resolution. I am monitoring institutional settlement flows across DTC, Fedwire, and Euroclear. I have flagged **42 critical exceptions** approaching market cutoffs representing **$84.6M in exposure**.',
+      text: 'Good afternoon. I am **ClearSet AI**, your post-trade operations copilot for settlement exception resolution. I am monitoring institutional settlement flows across DTC, Fedwire, and Euroclear.',
       suggestedFollowUps: [
         'Show me critical settlement exceptions approaching cutoff.',
-        'Why is TRD-92831 critical?',
         'What should I do according to our SOP?',
         'Have we seen this counterparty fail before?',
-        'Investigate TRD-92831.',
       ],
     },
   ]);
@@ -196,7 +194,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       approvedBy: 'Alex Mercer (Operations Analyst)',
       approvedAt: new Date().toISOString(),
       executionStatus: 'IN_PROGRESS',
-      resolutionOutcome: 'SWIFT MT599 repair message dispatched to CP-192. Desk escalation logged.',
+      resolutionOutcome: `SWIFT MT599 repair message dispatched to ${ex.trade.counterparty.name} (${ex.trade.counterparty.bic}). Desk escalation logged.`,
       createdAt: new Date().toISOString(),
       auditTrail: [
         {
@@ -209,7 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           timestamp: new Date().toISOString(),
           action: 'HUMAN_APPROVAL_GRANTED',
           actor: 'ANALYST',
-          details: customNotes || 'Analyst approved recommended SWIFT repair & Ops Lead escalation.',
+          details: customNotes || `Analyst approved recommended SWIFT repair & Ops Lead escalation for ${ex.trade.counterparty.name}.`,
         },
         {
           timestamp: new Date().toISOString(),
@@ -267,8 +265,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTimeout(() => {
       // If user prompted to investigate, trigger investigation automatically
       if (response.structuredData?.type === 'investigation_launch') {
-        selectExceptionForInvestigation(response.structuredData.tradeId || 'TRD-92831');
-        startInvestigation(response.structuredData.tradeId || 'TRD-92831');
+        const tradeId = response.structuredData.tradeId;
+        if (tradeId) {
+          selectExceptionForInvestigation(tradeId);
+          startInvestigation(tradeId);
+        }
       }
 
       const botReply: CopilotMessage = {

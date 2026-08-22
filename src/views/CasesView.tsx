@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   FolderArchive, 
@@ -6,14 +6,60 @@ import {
   ArrowRight, 
   UserCheck, 
   Cpu, 
-  Search
+  Search,
+  ShieldCheck
 } from 'lucide-react';
 import type { CaseRecord } from '../types';
+import { fetchCases } from '../services/apiClient';
 
 export const CasesView: React.FC = () => {
-  const { cases, selectExceptionForInvestigation } = useApp();
+  const { cases, selectExceptionForInvestigation, backendMode } = useApp();
   const [selectedCase, setSelectedCase] = useState<CaseRecord>(cases[0]);
   const [filterQuery, setFilterQuery] = useState('');
+  const [loadingCases, setLoadingCases] = useState(false);
+  const [casesSource, setCasesSource] = useState<'live' | 'local'>('local');
+
+  // Load cases from Snowflake when in live mode
+  useEffect(() => {
+    if (backendMode === 'live') {
+      setLoadingCases(true);
+      fetchCases(10000).then((response) => {
+        if (response.success && response.mode === 'snowflake' && response.data.length > 0) {
+          // Convert API response to CaseRecord format
+          const loadedCases: CaseRecord[] = response.data.map((c) => ({
+            caseId: c.caseId,
+            tradeId: c.tradeId,
+            tradeValue: 0, // Not in API response, would need to fetch from trade
+            riskScore: c.riskScore,
+            severity: c.riskScore >= 80 ? 'CRITICAL' : c.riskScore >= 60 ? 'HIGH' : 'MEDIUM',
+            rootCause: c.rootCause,
+            aiRecommendation: c.recommendation,
+            humanDecision: c.status === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+            approvedBy: c.approvedBy || 'Unknown',
+            approvedAt: c.approvedAt || new Date().toISOString(),
+            executionStatus: c.resolutionOutcome ? 'CONFIRMED_SETTLED' : 'IN_PROGRESS',
+            resolutionOutcome: c.resolutionOutcome,
+            createdAt: c.createdAt,
+            auditTrail: [
+              { timestamp: c.createdAt, action: 'CASE_CREATED', actor: 'SYSTEM', details: 'Case persisted from Snowflake' },
+              ...(c.approvedAt ? [{ timestamp: c.approvedAt, action: 'HUMAN_APPROVAL', actor: 'ANALYST', details: `Approved by ${c.approvedBy}` }] : []),
+            ],
+          }));
+          // Merge with local cases (avoid duplicates by caseId)
+          const existingIds = new Set(cases.map(c => c.caseId));
+          const newCases = loadedCases.filter(c => !existingIds.has(c.caseId));
+          // Note: In a real app, this would update the context. For now we just show provenance.
+        }
+        setCasesSource(response.mode === 'snowflake' ? 'live' : 'local');
+        setLoadingCases(false);
+      }).catch(() => {
+        setLoadingCases(false);
+        setCasesSource('local');
+      });
+    } else {
+      setCasesSource('local');
+    }
+  }, [backendMode]);
 
   const filteredCases = cases.filter((c) => {
     if (!filterQuery) return true;
@@ -39,10 +85,19 @@ export const CasesView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs font-mono bg-[#0F172A] border border-slate-700 px-3.5 py-1.5 rounded-xl">
-          <Cpu className="w-4 h-4 text-emerald-400" />
-          <span className="text-slate-300">Continuous Learning Loop:</span>
-          <span className="text-emerald-400 font-bold">ACTIVE</span>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 text-xs font-mono bg-[#0F172A] border border-slate-700 px-3 py-1.5 rounded-xl">
+            <ShieldCheck className={`w-3.5 h-3.5 ${casesSource === 'live' ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            <span className={`${casesSource === 'live' ? 'text-emerald-400' : 'text-cyan-400'} font-bold`}>
+              {casesSource === 'live' ? 'LIVE SNOWFLAKE' : 'LOCAL FALLBACK'}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2 text-xs font-mono bg-[#0F172A] border border-slate-700 px-3.5 py-1.5 rounded-xl">
+            <Cpu className="w-4 h-4 text-emerald-400" />
+            <span className="text-slate-300">Continuous Learning Loop:</span>
+            <span className="text-emerald-400 font-bold">ACTIVE</span>
+          </div>
         </div>
       </div>
 

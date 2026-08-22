@@ -32,6 +32,9 @@ export const ExceptionsView: React.FC = () => {
     return true;
   });
 
+  const openExceptions = exceptions.filter((ex) => ex.status !== 'RESOLVED');
+  const topRiskException = openExceptions.sort((a, b) => b.riskScore.totalScore - a.riskScore.totalScore)[0];
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -49,11 +52,14 @@ export const ExceptionsView: React.FC = () => {
         {/* Quick batch CTA */}
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => selectExceptionForInvestigation('TRD-92831')}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 hover:from-blue-500 hover:to-cyan-300 text-white text-xs font-bold shadow-md shadow-cyan-500/20 transition-all"
+            onClick={() => topRiskException ? selectExceptionForInvestigation(topRiskException.tradeId) : undefined}
+            disabled={!topRiskException}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl ${topRiskException 
+              ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-400 hover:from-blue-500 hover:to-cyan-300 text-white shadow-md shadow-cyan-500/20' 
+              : 'bg-[#162032] text-slate-500 cursor-not-allowed'} text-xs font-bold transition-all`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Investigate TRD-92831 (Highest Risk)</span>
+            <span>{topRiskException ? `Investigate ${topRiskException.tradeId} (Highest Risk)` : 'No Exceptions to Investigate'}</span>
           </button>
         </div>
       </div>
@@ -134,14 +140,14 @@ export const ExceptionsView: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-800">
               {filteredExceptions.map((ex) => {
-                const isShowcase = ex.tradeId === 'TRD-92831';
+                const isTopRisk = ex.tradeId === topRiskException?.tradeId;
 
                 return (
                   <tr
                     key={ex.id}
                     onClick={() => selectExceptionForInvestigation(ex.tradeId)}
                     className={`hover:bg-[#162032] transition-colors cursor-pointer ${
-                      isShowcase ? 'bg-rose-950/20' : ''
+                      isTopRisk ? 'bg-rose-950/20' : ''
                     }`}
                   >
                     {/* Trade ID & Ticker */}

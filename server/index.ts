@@ -68,78 +68,6 @@ function toJsonSafe(value: unknown): unknown {
 }
 
 // ============================================================================
-// TEMPORARY: GET /api/debug-snowflake
-// Isolates SDK connection/query behavior. Remove after the diagnosis is closed.
-// ============================================================================
-app.get('/api/debug-snowflake', async (_req: Request, res: Response) => {
-  const skipped = (reason: string) => ({ success: false, skipped: true, reason });
-  const response: Record<string, unknown> = {
-    temporary: true,
-    environment: snowflakeClient.getDiagnosticEnvironment(),
-    connection: { configured: snowflakeClient.isConfigured() },
-  };
-
-  const select1 = await snowflakeClient.executeDiagnosticStatement('SELECT 1 AS TEST;');
-  response.select1 = toJsonSafe(select1);
-  if (!select1.success) {
-    response.session = skipped('SELECT 1 did not succeed.');
-    response.exceptionsCount = skipped('SELECT 1 did not succeed.');
-    response.policyChunksCount = skipped('SELECT 1 did not succeed.');
-    response.stage = skipped('SELECT 1 did not succeed.');
-    response.semanticView = skipped('SELECT 1 did not succeed.');
-    return res.json(response);
-  }
-
-  const session = await snowflakeClient.executeDiagnosticStatement(
-    'SELECT CURRENT_ACCOUNT() AS ACCOUNT, CURRENT_USER() AS USER, CURRENT_ROLE() AS ROLE, CURRENT_WAREHOUSE() AS WAREHOUSE, CURRENT_DATABASE() AS DATABASE, CURRENT_SCHEMA() AS SCHEMA;',
-  );
-  response.session = toJsonSafe(session);
-  if (!session.success) {
-    response.exceptionsCount = skipped('Session query did not succeed.');
-    response.policyChunksCount = skipped('Session query did not succeed.');
-    response.stage = skipped('Session query did not succeed.');
-    response.semanticView = skipped('Session query did not succeed.');
-    return res.json(response);
-  }
-
-  const exceptionsCount = await snowflakeClient.executeDiagnosticStatement(
-    'SELECT COUNT(*) AS COUNT FROM CLEARSET_DB.CLEARSET_SCHEMA.EXCEPTIONS;',
-  );
-  response.exceptionsCount = toJsonSafe(exceptionsCount);
-  if (!exceptionsCount.success) {
-    response.policyChunksCount = skipped('EXCEPTIONS query did not succeed.');
-    response.stage = skipped('EXCEPTIONS query did not succeed.');
-    response.semanticView = skipped('EXCEPTIONS query did not succeed.');
-    return res.json(response);
-  }
-
-  const policyChunksCount = await snowflakeClient.executeDiagnosticStatement(
-    'SELECT COUNT(*) AS COUNT FROM CLEARSET_DB.CLEARSET_SCHEMA.POLICY_CHUNKS;',
-  );
-  response.policyChunksCount = toJsonSafe(policyChunksCount);
-  if (!policyChunksCount.success) {
-    response.stage = skipped('POLICY_CHUNKS query did not succeed.');
-    response.semanticView = skipped('POLICY_CHUNKS query did not succeed.');
-    return res.json(response);
-  }
-
-  const stage = await snowflakeClient.executeDiagnosticStatement(
-    'LIST @CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_POLICY_STAGE;',
-  );
-  response.stage = toJsonSafe(stage);
-  if (!stage.success) {
-    response.semanticView = skipped('Stage listing did not succeed.');
-    return res.json(response);
-  }
-
-  const semanticView = await snowflakeClient.executeDiagnosticStatement(
-    "SHOW SEMANTIC VIEWS LIKE 'CLEARSET_ANALYTICS' IN SCHEMA CLEARSET_DB.CLEARSET_SCHEMA;",
-  );
-  response.semanticView = toJsonSafe(semanticView);
-  return res.json(response);
-});
-
-// ============================================================================
 // GET /api/health
 // Returns the operational mode and whether live Snowflake is accessible.
 // ============================================================================
@@ -870,6 +798,151 @@ app.post('/api/cortex/analyst', async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// POST /api/cases
+// Persist an approved resolution case to Snowflake.
+// Request: { caseId, tradeId, exceptionId, status, riskScore, rootCause, recommendation, resolutionOutcome, approvedBy, approvedAt }
+// Response: { success, mode, caseId?, message?, error? }
+// ============================================================================
+app.post('/api/cases', async (req: Request, res: Response) => {
+  const {
+    caseId,
+    tradeId,
+    exceptionId,
+    status,
+    riskScore,
+    rootCause,
+    recommendation,
+    resolutionOutcome,
+    approvedBy,
+    approvedAt,
+  } = req.body as {
+    caseId?: string;
+    tradeId?: string;
+    exceptionId?: string;
+    status?: string;
+    riskScore?: number;
+    rootCause?: string;
+    recommendation?: string;
+    resolutionOutcome?: string;
+    approvedBy?: string;
+    approvedAt?: string;
+  };
+
+  if (!caseId || !tradeId || !status || riskScore === undefined || !rootCause || !recommendation) {
+    return res.status(400).json({
+      success: false,
+      error: 'Missing required fields: caseId, tradeId, status, riskScore, rootCause, recommendation',
+    });
+  }
+
+  if (!snowflakeClient.isConfigured()) {
+    return res.status(200).json({
+      success: false,
+      mode: 'local',
+      message: 'Snowflake unavailable — case not persisted',
+      error: 'Snowflake not configured',
+    });
+  }
+
+  try {
+    const insertSql = `
+      INSERT INTO CLEARSET_DB.CLEARSET_SCHEMA.RESOLUTION_CASES (
+        CASE_ID, TRADE_ID, EXCEPTION_ID, STATUS, RISK_SCORE,
+        ROOT_CAUSE, RECOMMENDATION, RESOLUTION_OUTCOME,
+        APPROVED_BY, APPROVED_AT, CREATED_AT, UPDATED_AT
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+    `;
+
+    const binds = [
+      caseId,
+      tradeId,
+      exceptionId ?? null,
+      status,
+      riskScore,
+      rootCause,
+      recommendation,
+      resolutionOutcome ?? null,
+      approvedBy ?? null,
+      approvedAt ?? new Date().toISOString(),
+    ];
+
+    await snowflakeClient.executeStatement(insertSql, binds);
+
+    return res.json({
+      success: true,
+      mode: 'snowflake',
+      caseId,
+      message: 'Case persisted to Snowflake',
+    });
+  } catch (err: any) {
+    console.error('[ClearSet] Case persistence error:', err?.message);
+    return res.status(200).json({
+      success: false,
+      mode: 'snowflake',
+      error: err?.message || 'Failed to persist case to Snowflake',
+      message: 'Case not persisted — check server logs',
+    });
+  }
+});
+
+// ============================================================================
+// GET /api/cases
+// Load persisted resolution cases from Snowflake.
+// Response: { success, mode, data: [...] }
+// ============================================================================
+app.get('/api/cases', async (_req: Request, res: Response) => {
+  if (!snowflakeClient.isConfigured()) {
+    return res.status(200).json({
+      success: false,
+      mode: 'local',
+      data: [],
+      message: 'Snowflake unavailable',
+    });
+  }
+
+  try {
+    const sql = `
+      SELECT
+        CASE_ID, TRADE_ID, EXCEPTION_ID, STATUS, RISK_SCORE,
+        ROOT_CAUSE, RECOMMENDATION, RESOLUTION_OUTCOME,
+        APPROVED_BY, APPROVED_AT, CREATED_AT, UPDATED_AT
+      FROM CLEARSET_DB.CLEARSET_SCHEMA.RESOLUTION_CASES
+      ORDER BY CREATED_AT DESC
+      LIMIT 100
+    `;
+
+    const rows = await snowflakeClient.executeStatement(sql);
+
+    return res.json({
+      success: true,
+      mode: 'snowflake',
+      data: rows.map((row) => ({
+        caseId: row.CASE_ID,
+        tradeId: row.TRADE_ID,
+        exceptionId: row.EXCEPTION_ID,
+        status: row.STATUS,
+        riskScore: Number(row.RISK_SCORE),
+        rootCause: row.ROOT_CAUSE,
+        recommendation: row.RECOMMENDATION,
+        resolutionOutcome: row.RESOLUTION_OUTCOME,
+        approvedBy: row.APPROVED_BY,
+        approvedAt: row.APPROVED_AT,
+        createdAt: row.CREATED_AT,
+        updatedAt: row.UPDATED_AT,
+      })),
+    });
+  } catch (err: any) {
+    console.error('[ClearSet] Cases load error:', err?.message);
+    return res.status(200).json({
+      success: false,
+      mode: 'snowflake',
+      data: [],
+      error: err?.message || 'Failed to load cases from Snowflake',
+    });
+  }
+});
+
+// ============================================================================
 // Global error handler
 // ============================================================================
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -914,6 +987,8 @@ const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`  GET  /api/trades`);
   console.log(`  GET  /api/counterparties/:id`);
   console.log(`  GET  /api/settlement-events/:tradeId`);
+  console.log(`  GET  /api/cases`);
+  console.log(`  POST /api/cases`);
   console.log(`  POST /api/cortex/search`);
   console.log(`  POST /api/cortex/analyst`);
 });
