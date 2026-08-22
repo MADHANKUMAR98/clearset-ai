@@ -13,6 +13,19 @@ import {
 import { POLICY_DOCUMENTS } from '../data/knowledgeBase';
 import { fetchCortexSearch, fetchCortexAnalyst } from './apiClient';
 
+/** Converts arbitrary Cortex response values into display-safe text. */
+function formatCortexValue(value: unknown): string {
+  if (value === null || value === undefined) return 'N/A';
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[Unserializable value]';
+    }
+  }
+  return String(value);
+}
+
 const INVESTIGATION_STEPS_TEMPLATE: Omit<InvestigationStep, 'status' | 'logs'>[] = [
   {
     id: 1,
@@ -389,10 +402,10 @@ class HybridCortexService implements ICortexService {
 
         if (response.success && response.mode === 'snowflake' && response.results.length > 0) {
           const top = response.results[0];
-          const docCode = String(top['DOC_CODE'] ?? '');
-          const policyName = String(top['POLICY_NAME'] ?? '');
-          const policySection = String(top['POLICY_SECTION'] ?? '');
-          const chunkText = String(top['CHUNK_TEXT'] ?? '');
+          const docCode = formatCortexValue(top['DOC_CODE']);
+          const policyName = formatCortexValue(top['POLICY_NAME']);
+          const policySection = formatCortexValue(top['POLICY_SECTION']);
+          const chunkText = formatCortexValue(top['CHUNK_TEXT']);
 
           return {
             logs: [
@@ -440,7 +453,7 @@ class HybridCortexService implements ICortexService {
           // Format the data rows as a markdown table-like summary
           const rowSummaries = data.slice(0, 5).map((row) => {
             return Object.entries(row)
-              .map(([k, v]) => `**${k}**: ${v ?? 'N/A'}`)
+              .map(([k, v]) => `**${k}**: ${formatCortexValue(v)}`)
               .join(' | ');
           });
 
