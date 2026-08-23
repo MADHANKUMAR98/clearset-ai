@@ -20,6 +20,7 @@ import {
   SETTLEMENT_INSTRUCTIONS,
   SETTLEMENT_EVENTS_TRD92831,
 } from '../data/syntheticData';
+import { EXCEPTION_TYPES } from '../types';
 import {
   fetchExceptionsFromApi,
   fetchTradesFromApi,
@@ -28,7 +29,6 @@ import {
   createCase,
 } from './apiClient';
 import { calculateSettlementRisk } from '../engine/riskEngine';
-import { pickColumn } from './types';
 
 // ============================================================================
 // LocalSettlementService — syntheticData fallback (must never be removed)
@@ -209,16 +209,8 @@ function asInstructionStatus(value: unknown): InstructionStatus {
 }
 
 function asExceptionType(value: unknown): ExceptionItem['exceptionType'] {
-  const allowed: ExceptionItem['exceptionType'][] = [
-    'Missing Instruction',
-    'Cash Discrepancy',
-    'Securities Shortage',
-    'Counterparty Fail Risk',
-    'Cutoff Approaching',
-    'Depository Reject',
-  ];
   const raw = asString(value);
-  const match = allowed.find((item) => item.toLowerCase() === raw.toLowerCase());
+  const match = EXCEPTION_TYPES.find((item) => item.toLowerCase() === raw.toLowerCase());
   return match ?? 'Missing Instruction';
 }
 
@@ -449,6 +441,7 @@ function mapSnowflakeSettlementEventRow(row: Record<string, unknown>): Settlemen
 // ============================================================================
 class HybridSettlementService implements ISettlementService {
   private liveExceptions: ExceptionItem[] | null = null;
+  private liveTradesCount: number | null = null;
   private local: LocalSettlementService;
 
   constructor(local: LocalSettlementService) {
@@ -457,15 +450,24 @@ class HybridSettlementService implements ISettlementService {
 
   private async loadLiveExceptions(): Promise<ExceptionItem[] | null> {
     try {
-      const response = await fetchExceptionsFromApi();
+      const [response, tradesResponse] = await Promise.all([
+        fetchExceptionsFromApi(),
+        fetchTradesFromApi(),
+      ]);
       if (!response.success || response.mode !== 'snowflake') {
         this.liveExceptions = null;
+        this.liveTradesCount = null;
         return null;
       }
       this.liveExceptions = response.data.map((row) => mapSnowflakeExceptionRow(row));
+      this.liveTradesCount =
+        tradesResponse.success && tradesResponse.mode === 'snowflake'
+          ? tradesResponse.data.length
+          : null;
       return this.liveExceptions;
     } catch {
       this.liveExceptions = null;
+      this.liveTradesCount = null;
       return null;
     }
   }
@@ -557,9 +559,10 @@ class HybridSettlementService implements ISettlementService {
 
   /**
    * Compute dashboard metrics entirely from live Snowflake data.
-   * No artificial baselines or offsets.
+   * No artificial baselines or offsets. Metrics that cannot be derived from
+   * the live dataset are returned as null and rendered as DATA NOT AVAILABLE.
    */
-  private computeLiveDashboardMetrics(liveExceptions: ExceptionItem[], cases: CaseRecord[]): DashboardStats {
+  private computeLiveDashboardMetrics(liveExceptions: ExceptionItem[], _cases: CaseRecord[]): DashboardStats {
     const openExceptions = liveExceptions.filter((e) => e.status !== 'RESOLVED');
     const criticalExceptions = openExceptions.filter((e) => e.severity === 'CRITICAL');
     const highExceptions = openExceptions.filter((e) => e.severity === 'HIGH');
@@ -570,15 +573,14 @@ class HybridSettlementService implements ISettlementService {
     // Critical exposure from live critical exceptions only
     const criticalExposure = criticalExceptions.reduce((sum, e) => sum + e.trade.tradeValue, 0);
 
-    // Total trades monitored — from live data if available, else use known baseline
-    const totalTrades = 128420; // This is a static operational metric, not derived from exceptions
+    // Total trades monitored — the live TRADES table row count (35 rows in current dataset)
+    const totalTrades = this.liveTradesCount ?? liveExceptions.length;
 
-    // Settlement rate based on live data
-    const settlementRate = Number(((totalTrades - openExceptions.length) / totalTrades * 100).toFixed(2));
-
-    // Penalties avoided from persisted cases (Snowflake mode) + local cases
-    // In live mode, cases should include Snowflake-persisted cases
-    const totalPenaltiesAvoided = cases.length * 1566; // Per-case estimate
+    // Settlement rate computed over the monitored trade universe
+    const settlementRatePercent =
+      totalTrades > 0
+        ? Number((((totalTrades - openExceptions.length) / totalTrades) * 100).toFixed(2))
+        : null;
 
     return {
       totalTrades,
@@ -587,9 +589,9 @@ class HybridSettlementService implements ISettlementService {
       highExceptions: highExceptions.length,
       totalExposureDollars: activeExposure,
       criticalExposureDollars: criticalExposure,
-      settlementRatePercent: settlementRate,
-      avgTimeToResolveMinutes: 38, // Static operational metric
-      csdrPenaltiesAvoidedToday: totalPenaltiesAvoided,
+      settlementRatePercent,
+      avgTimeToResolveMinutes: null,
+      csdrPenaltiesAvoidedToday: null,
     };
   }
 

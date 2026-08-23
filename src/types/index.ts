@@ -5,6 +5,28 @@ export type ExceptionSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 export type ExceptionStatus = 'OPEN' | 'INVESTIGATING' | 'PENDING_APPROVAL' | 'RESOLVED' | 'ESCALATED';
 export type InstructionStatus = 'MATCHED' | 'MISSING' | 'MISMATCHED' | 'PENDING' | 'REJECTED';
 
+export const EXCEPTION_TYPES = [
+  'Missing Instruction',
+  'Cash Discrepancy',
+  'Securities Shortage',
+  'Counterparty Fail Risk',
+  'Cutoff Approaching',
+  'Depository Reject',
+  'Account Number Mismatch',
+  'Rejected Instruction',
+  'Late Affirmation',
+  'Post-Cutoff Fail',
+  'Settlement Date Mismatch',
+  'Instruction Rejected',
+  'Instruction Pending',
+  'Failed Settlement',
+  'Depot Location Error',
+  'Duplicate Instruction',
+  'Custodian Unreachable',
+] as const;
+
+export type ExceptionType = (typeof EXCEPTION_TYPES)[number];
+
 export interface Security {
   isin: string;
   cusip: string;
@@ -184,7 +206,7 @@ export interface ExceptionItem {
   trade: Trade;
   severity: ExceptionSeverity;
   status: ExceptionStatus;
-  exceptionType: 'Missing Instruction' | 'Cash Discrepancy' | 'Securities Shortage' | 'Counterparty Fail Risk' | 'Cutoff Approaching' | 'Depository Reject';
+  exceptionType: ExceptionType;
   riskScore: RiskScoreBreakdown;
   detectedAt: string;
   assignedAnalyst?: string;

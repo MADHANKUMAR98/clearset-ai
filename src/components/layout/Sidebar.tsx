@@ -1,17 +1,25 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { 
-  LayoutDashboard, 
-  AlertOctagon, 
-  Sparkles, 
-  Bot, 
-  FolderArchive, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  AlertOctagon,
+  Sparkles,
+  Bot,
+  FolderArchive,
+  BookOpen,
   ShieldAlert,
-  Cpu
+  Cpu,
+  X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { formatCutoffRemaining } from '../ui/tokens';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+const SidebarContent: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
   const { activeTab, setActiveTab, dashboardMetrics, cases, exceptions } = useApp();
 
   // Find the highest-risk unresolved exception for the priority triage box.
@@ -27,6 +35,7 @@ export const Sidebar: React.FC = () => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       badge: undefined,
+      badgeColor: '',
     },
     {
       id: 'exceptions',
@@ -39,7 +48,7 @@ export const Sidebar: React.FC = () => {
       id: 'investigation',
       label: 'Investigation Workspace',
       icon: Sparkles,
-      badge: priorityException ? priorityException.tradeId : '—',
+      badge: priorityException ? priorityException.tradeId : undefined,
       badgeColor: 'bg-rose-500/15 text-rose-300 border-rose-500/30 font-bold',
     },
     {
@@ -65,8 +74,13 @@ export const Sidebar: React.FC = () => {
     },
   ];
 
+  const handleNav = (tabId: string) => {
+    setActiveTab(tabId);
+    onNavigate?.();
+  };
+
   return (
-    <aside className="w-64 border-r border-[#1E293B] bg-[#0A0F1D]/70 backdrop-blur-md flex flex-col justify-between p-4 shrink-0 min-h-[calc(100vh-4rem)]">
+    <div className="flex flex-col justify-between h-full min-h-full">
       <div className="space-y-6">
         {/* Ops Section Title */}
         <div>
@@ -80,10 +94,10 @@ export const Sidebar: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => handleNav(item.id)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-600/25 to-cyan-500/10 text-white border border-cyan-500/40 shadow-sm shadow-cyan-500/10 font-semibold'
+                      ? 'bg-gradient-to-r from-blue-600/25 to-cyan-500/10 text-white border border-cyan-500/40 shadow-[inset_2px_0_0_0_#22D3EE] font-semibold'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-[#111827] border border-transparent'
                   }`}
                 >
@@ -116,9 +130,7 @@ export const Sidebar: React.FC = () => {
 
           <div className="space-y-2 text-xs">
             <button
-              onClick={() => {
-                setActiveTab('investigation');
-              }}
+              onClick={() => handleNav('investigation')}
               className="w-full p-2 rounded-lg bg-[#162032] hover:bg-[#1B273F] border border-rose-500/40 flex items-center justify-between text-left transition-colors"
             >
               {priorityException ? (
@@ -139,7 +151,7 @@ export const Sidebar: React.FC = () => {
                       {priorityException.riskScore.totalScore}
                     </span>
                     <div className="text-[9px] text-amber-400 font-mono">
-                      {Math.floor(priorityException.trade.cutoffMinutesRemaining / 60)}h {priorityException.trade.cutoffMinutesRemaining % 60}m
+                      {formatCutoffRemaining(priorityException.trade.cutoffMinutesRemaining)}
                     </div>
                   </div>
                 </>
@@ -163,7 +175,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer System Telemetry */}
-      <div className="pt-4 border-t border-slate-800">
+      <div className="pt-4 border-t border-slate-800 mt-6">
         <div className="p-3 rounded-xl bg-[#0F172A] border border-slate-700/80 space-y-1.5">
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-slate-300 flex items-center gap-1.5 font-medium">
@@ -179,6 +191,50 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+};
+
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose }) => {
+  return (
+    <>
+      {/* Static sidebar for wide screens */}
+      <aside className="hidden xl:flex w-64 border-r border-[#1E293B] bg-[#0A0F1D]/70 backdrop-blur-md p-4 shrink-0 min-h-[calc(100vh-4rem)]">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              key="sidebar-backdrop"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 xl:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+            />
+            <motion.aside
+              key="sidebar-drawer"
+              className="fixed left-0 top-16 bottom-0 w-64 z-50 xl:hidden border-r border-[#1E293B] bg-[#0A0F1D] p-4 overflow-y-auto shadow-2xl"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
+            >
+              <button
+                onClick={onClose}
+                className="absolute right-3 top-3 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#162032]"
+                aria-label="Close navigation"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <SidebarContent onNavigate={onClose} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 };

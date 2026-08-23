@@ -321,5 +321,3 @@ export async function fetchCases(
     return { success: false, mode: 'local', data: [], message: 'Cases unavailable' };
   }
 }
-}
-}

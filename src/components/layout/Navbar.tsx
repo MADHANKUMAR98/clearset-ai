@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Search, Activity, Cpu, Cloud, Database } from 'lucide-react';
+import { Search, Activity, Cpu, Cloud, Database, Menu } from 'lucide-react';
 import { fetchHealth } from '../../services/apiClient';
 
 type SnowflakeStatus = 'checking' | 'live' | 'local';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onToggleSidebar?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const { searchQuery, setSearchQuery, dashboardMetrics } = useApp();
   const [snowflakeStatus, setSnowflakeStatus] = useState<SnowflakeStatus>('checking');
 
@@ -42,6 +46,15 @@ export const Navbar: React.FC = () => {
     <header className="h-16 border-b border-[#1E293B] bg-[#0A0F1D]/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30 shadow-md">
       {/* Brand & System Status */}
       <div className="flex items-center space-x-4">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="xl:hidden p-2 rounded-lg border border-slate-700 bg-[#111827] text-slate-300 hover:text-white transition-colors"
+            aria-label="Toggle navigation"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 font-bold text-white text-base">
             ⚡
@@ -94,7 +107,7 @@ export const Navbar: React.FC = () => {
         {/* Live Exposure Counter */}
         <div className="hidden sm:flex items-center space-x-3 px-3.5 py-1.5 rounded-lg bg-[#111827] border border-slate-700/80 text-xs shadow-inner">
           <Activity className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-slate-400 font-sans">Active Critical Exposure:</span>
+          <span className="text-slate-400 font-sans">Open Exception Exposure:</span>
           <span className="font-mono font-bold text-amber-400">
             ${(dashboardMetrics.totalExposureDollars / 1000000).toFixed(1)}M
           </span>

@@ -1,16 +1,14 @@
-import type { ICortexService } from './types';
-import type { 
-  AIRecommendation, 
-  HistoricalCase, 
-  InvestigationStep, 
-  Trade 
+import type { ICortexService, CopilotChatContext, DataMode } from './types';
+import type {
+  AIRecommendation,
+  ExceptionType,
+  HistoricalCase,
+  InvestigationStep,
+  Trade
 } from '../types';
-import { 
-  COUNTERPARTIES 
-} from '../data/syntheticData';
-import { POLICY_DOCUMENTS } from '../data/knowledgeBase';
 import { fetchCortexSearch, fetchCortexAnalyst } from './apiClient';
-import { getAIRecommendation, getStepLogs } from '../engine/agentOrchestrator';
+import { generateInitialSteps, getAIRecommendation, getStepLogs } from '../engine/agentOrchestrator';
+import { calculateSettlementRisk } from '../engine/riskEngine';
 
 /** Converts arbitrary Cortex response values into display-safe text. */
 function formatCortexValue(value: unknown): string {
@@ -24,69 +22,6 @@ function formatCortexValue(value: unknown): string {
   }
   return String(value);
 }
-
-const INVESTIGATION_STEPS_TEMPLATE: Omit<InvestigationStep, 'status' | 'logs'>[] = [
-  {
-    id: 1,
-    name: 'Identify Trade & Master Data',
-    skillName: 'identify_trade',
-    description: 'Query Snowflake TRADES & SECURITIES tables for trade economics, asset class, ISIN, and booking desk.',
-  },
-  {
-    id: 2,
-    name: 'Retrieve Settlement State',
-    skillName: 'check_settlement_state',
-    description: 'Query SETTLEMENT_EVENTS and depository gateway for SWIFT MT541/MT548 matching status.',
-  },
-  {
-    id: 3,
-    name: 'Check Settlement Instructions',
-    skillName: 'check_instructions',
-    description: 'Validate Standing Settlement Instructions (SSI) against depository participant directory.',
-  },
-  {
-    id: 4,
-    name: 'Analyze Counterparty History',
-    skillName: 'analyze_counterparty',
-    description: 'Use Cortex Analyst to query COUNTERPARTIES table for 30-day failure rate and settlement delay metrics.',
-  },
-  {
-    id: 5,
-    name: 'Find Similar Historical Cases',
-    skillName: 'find_similar_cases',
-    description: 'Query HISTORICAL_CASES for institutional operational memory and prior resolution outcomes.',
-  },
-  {
-    id: 6,
-    name: 'Retrieve Applicable Procedure',
-    skillName: 'retrieve_procedure',
-    description: 'Use Cortex Search over Snowflake Knowledge Base for relevant SOP sections and escalation thresholds.',
-  },
-  {
-    id: 7,
-    name: 'Assess Settlement Risk',
-    skillName: 'assess_settlement_risk',
-    description: 'Execute deterministic explainable risk engine to calculate mathematical point allocation (0-100).',
-  },
-  {
-    id: 8,
-    name: 'Determine Root Cause',
-    skillName: 'determine_root_cause',
-    description: 'Synthesize structured evidence to pinpoint primary operational failure point and contributing risk factors.',
-  },
-  {
-    id: 9,
-    name: 'Generate Recommendation',
-    skillName: 'recommend_resolution',
-    description: 'Formulate actionable multi-step resolution plan aligned with SOP guidelines and historical precedents.',
-  },
-  {
-    id: 10,
-    name: 'Request Human Approval',
-    skillName: 'request_human_approval',
-    description: 'Present actionable resolution package with full evidence citations to operations analyst for authorization.',
-  },
-];
 
 function buildSearchQuery(trade: Trade): string {
   const parts = [
@@ -105,55 +40,49 @@ function buildSearchQuery(trade: Trade): string {
 
 export class LocalCortexService implements ICortexService {
   public getInvestigationSteps(): InvestigationStep[] {
-    return INVESTIGATION_STEPS_TEMPLATE.map((step) => ({
-      ...step,
-      status: 'PENDING',
-      logs: [],
-    }));
+    return generateInitialSteps();
   }
 
-  public async executeStep(stepId: number, trade: Trade): Promise<{ logs: string[]; summary: string }> {
+  public async executeStep(
+    stepId: number,
+    trade: Trade,
+    dataMode: DataMode = 'local'
+  ): Promise<{ logs: string[]; summary: string }> {
     // Delegate to the shared agentOrchestrator for consistent behavior
-    return getStepLogs(stepId, trade);
+    return getStepLogs(stepId, trade, dataMode);
   }
 
-  public async generateRecommendation(trade: Trade): Promise<AIRecommendation> {
+  public async generateRecommendation(trade: Trade, exceptionType?: ExceptionType): Promise<AIRecommendation> {
     // Delegate to the shared agentOrchestrator for consistent behavior
-    return getAIRecommendation(trade);
+    return getAIRecommendation(trade, exceptionType);
   }
 
   public async getHistoricalCases(_trade: Trade): Promise<{ cases: HistoricalCase[]; summary: any }> {
-    // Local fallback only has TRD-92831 demo data
-    // In live mode, this would query HISTORICAL_CASES table or Cortex Search
+    // Local fallback has no HISTORICAL_CASES table — report zero honestly.
     return {
       cases: [],
-      summary: { 
-        totalFound: 0, 
-        note: 'Historical case data not available in local fallback. Enable live Snowflake mode for full history.' 
+      summary: {
+        totalFound: 0,
+        note: 'Historical case data not available in local fallback. Enable live Snowflake mode for full history.',
       },
     };
   }
 
-  public async queryCopilot(query: string, activeTrade?: Trade): Promise<{
+  public async queryCopilot(query: string, context?: CopilotChatContext): Promise<{
     text: string;
     structuredData?: any;
     suggestedFollowUps?: string[];
   }> {
     const lower = query.toLowerCase();
-    const trade = activeTrade;
-
-    // Helper to get the highest-risk exception from context
-    const getTopException = () => {
-      if (!trade) return null;
-      // We don't have access to all exceptions here, so use active trade
-      return trade;
-    };
+    const trade = context?.trade;
+    // Risk score comes only from caller-supplied context or deterministic engine — never invented.
+    const riskScore = context?.riskScore;
 
     // Query 1: "Show me critical settlement exceptions approaching cutoff."
     if (lower.includes('show me critical') || lower.includes('approaching cutoff') || lower.includes('overview') || lower.includes('critical exceptions')) {
       if (trade) {
         return {
-          text: `Monitoring institutional settlement flows. The highest-risk case in current view is **${trade.id}** with a deterministic score of **${trade.riskScore?.totalScore || 'N/A'}/100** ($${(trade.tradeValue / 1000000).toFixed(1)}M ${trade.security.ticker} trade with ${trade.counterparty.name}, cutoff in ${Math.floor(trade.cutoffMinutesRemaining / 60)}h ${trade.cutoffMinutesRemaining % 60}m).`,
+          text: `Monitoring institutional settlement flows. The highest-risk case in current view is **${trade.id}** with a deterministic score of **${riskScore ?? 'N/A'}/100** ($${(trade.tradeValue / 1000000).toFixed(1)}M ${trade.security.ticker} trade with ${trade.counterparty.name}, cutoff in ${Math.floor(trade.cutoffMinutesRemaining / 60)}h ${trade.cutoffMinutesRemaining % 60}m).`,
           structuredData: {
             type: 'trade_card',
             tradeSummary: {
@@ -206,26 +135,20 @@ export class LocalCortexService implements ICortexService {
     // Query 3: "Why is [trade] critical?" or "Why is it critical?"
     if ((lower.includes('why is') && (lower.includes('critical') || lower.includes('risk'))) || lower.includes('risk breakdown')) {
       if (trade) {
-        const riskScore = trade.riskScore?.totalScore || 0;
-        const factors = trade.riskScore?.factors || [];
-        const breakdown = factors.map(f => ({
+        // Always compute the breakdown deterministically from live trade data.
+        const score = calculateSettlementRisk(trade);
+        const breakdown = score.factors.map((f) => ({
           label: f.factor,
           points: f.points,
           note: f.explanation,
         }));
         return {
-          text: `**${trade.id}** is scored at **${riskScore}/100** by ClearSet's deterministic risk engine. Here is the exact, explainable point breakdown from telemetry data:`,
+          text: `**${trade.id}** is scored at **${score.totalScore}/100** by ClearSet's deterministic risk engine. Here is the exact, explainable point breakdown from telemetry data:`,
           structuredData: {
             type: 'risk_breakdown',
             tradeId: trade.id,
-            riskScore,
-            pointsBreakdown: breakdown.length > 0 ? breakdown : [
-              { label: 'Instruction Risk', points: 25, note: trade.instructionStatus === 'MISSING' ? 'Missing SSI' : 'N/A' },
-              { label: 'Cutoff Urgency', points: trade.cutoffMinutesRemaining <= 120 ? 25 : trade.cutoffMinutesRemaining <= 240 ? 15 : 8, note: `${trade.cutoffMinutesRemaining} minutes remaining` },
-              { label: 'Financial Exposure', points: trade.tradeValue >= 2000000 ? 20 : trade.tradeValue >= 1000000 ? 15 : 10, note: `$${(trade.tradeValue / 1000000).toFixed(1)}M` },
-              { label: 'Counterparty Risk', points: trade.counterparty.priorFailures >= 5 ? 15 : trade.counterparty.priorFailures >= 2 ? 10 : 5, note: `${trade.counterparty.priorFailures} prior failures` },
-              { label: 'Institutional Memory', points: 6, note: 'Historical pattern match' },
-            ],
+            riskScore: score.totalScore,
+            pointsBreakdown: breakdown,
           },
           suggestedFollowUps: [
             'What should I do according to our SOP?',
@@ -245,15 +168,15 @@ export class LocalCortexService implements ICortexService {
       if (trade) {
         const rec = getAIRecommendation(trade);
         return {
-          text: `Based on **${rec.applicablePolicyRef.doc} §${rec.applicablePolicyRef.section}** (*${rec.applicablePolicyRef.title}*), ClearSet recommends the following mandatory actions:`,
+          text: `Based on **${rec.applicablePolicyRef.docCode} §${rec.applicablePolicyRef.section}** (*${rec.applicablePolicyRef.title}*), ClearSet recommends the following mandatory actions:`,
           structuredData: {
             type: 'sop_citation',
             policyCitation: {
-              doc: rec.applicablePolicyRef.doc,
+              doc: rec.applicablePolicyRef.docCode,
               section: rec.applicablePolicyRef.section,
               text: `Mandatory Protocol: ${rec.actionSteps.join(' ')}`,
             },
-            recommendation: `${rec.primaryAction} Estimated daily CSDR penalty avoided: $${rec.csdrPenaltyRiskDaily.toFixed(2)}.`,
+            recommendation: `${rec.primaryAction}`,
           },
           suggestedFollowUps: [
             'Have we seen this counterparty fail before?',
@@ -288,7 +211,7 @@ export class LocalCortexService implements ICortexService {
             },
             similarCases: {
               total: 0,
-              note: 'Historical case matching requires live Snowflake HISTORICAL_CASES table.',
+              note: 'Historical case matching requires a populated HISTORICAL_CASES table — reported as zero until available.',
             },
           },
           suggestedFollowUps: [
@@ -345,13 +268,15 @@ class HybridCortexService implements ICortexService {
 
   /**
    * executeStep — step 6 (policy retrieval) is enhanced with Cortex Search.
-   * All other steps delegate to local.
+   * All other steps delegate to local. dataMode threads through so step logs
+   * always label the true backend.
    */
   public async executeStep(
     stepId: number,
     trade: Trade,
+    dataMode: DataMode = 'local'
   ): Promise<{ logs: string[]; summary: string }> {
-    if (stepId === 6) {
+    if (stepId === 6 && dataMode === 'live') {
       try {
         const query = buildSearchQuery(trade);
         const response = await fetchCortexSearch(query, 3);
@@ -376,11 +301,11 @@ class HybridCortexService implements ICortexService {
         // fall through to local
       }
     }
-    return this.local.executeStep(stepId, trade);
+    return this.local.executeStep(stepId, trade, dataMode);
   }
 
-  public async generateRecommendation(trade: Trade): Promise<AIRecommendation> {
-    return this.local.generateRecommendation(trade);
+  public async generateRecommendation(trade: Trade, exceptionType?: ExceptionType): Promise<AIRecommendation> {
+    return this.local.generateRecommendation(trade, exceptionType);
   }
 
   public async getHistoricalCases(trade: Trade): Promise<{ cases: HistoricalCase[]; summary: any }> {
@@ -394,19 +319,17 @@ class HybridCortexService implements ICortexService {
    */
   public async queryCopilot(
     query: string,
-    activeTrade?: Trade,
+    context?: CopilotChatContext,
   ): Promise<{ text: string; structuredData?: any; suggestedFollowUps?: string[] }> {
     try {
       const response = await fetchCortexAnalyst(query);
 
       if (response.success && response.mode === 'snowflake') {
-        // Build a response from Cortex Analyst data
         const sql = response.sql;
         const data = response.data || [];
         const interpretation = response.interpretation || '';
 
         if (sql && data.length > 0) {
-          // Format the data rows as a markdown table-like summary
           const rowSummaries = data.slice(0, 5).map((row) => {
             return Object.entries(row)
               .map(([k, v]) => `**${k}**: ${formatCortexValue(v)}`)
@@ -421,9 +344,9 @@ class HybridCortexService implements ICortexService {
             text,
             structuredData: {
               type: 'investigation_summary' as const,
-              tradeId: activeTrade?.id,
+              tradeId: context?.trade.id,
             },
-            suggestedFollowUps: activeTrade
+            suggestedFollowUps: context?.trade
               ? [
                   'Why is this trade critical?',
                   'What should I do according to our SOP?',
@@ -436,11 +359,10 @@ class HybridCortexService implements ICortexService {
           };
         }
 
-        // Cortex Analyst responded but no SQL/data — use interpretation text if present
         if (interpretation) {
           return {
             text: interpretation,
-            suggestedFollowUps: activeTrade
+            suggestedFollowUps: context?.trade
               ? [
                   'Why is this trade critical?',
                   'What should I do according to our SOP?',
@@ -456,7 +378,7 @@ class HybridCortexService implements ICortexService {
       // Cortex Analyst unavailable — fall through to local
     }
 
-    return this.local.queryCopilot(query, activeTrade);
+    return this.local.queryCopilot(query, context);
   }
 }
 

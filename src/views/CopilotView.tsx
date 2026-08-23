@@ -237,10 +237,13 @@ export const CopilotView: React.FC = () => {
                         </div>
 
                         <div className="pt-1 flex items-center justify-between text-xs">
-                          <span className="text-[11px] text-emerald-400 font-mono font-bold">
-                            18 Similar Historical Cases (88.9% Success)
-                            {backendMode === 'live' && (
-                              <span className="ml-1 text-[10px] text-slate-500 font-normal font-mono">(illustrative)</span>
+                          <span className="text-[11px] font-mono">
+                            {(msg.structuredData.similarCases?.total ?? 0) > 0 ? (
+                              <>
+                                <span className="text-emerald-400 font-bold">{msg.structuredData.similarCases?.total} Similar Historical Cases</span>
+                              </>
+                            ) : (
+                              <span className="text-slate-500">Historical case matching: DATA NOT AVAILABLE</span>
                             )}
                           </span>
                           <button
@@ -260,37 +263,41 @@ export const CopilotView: React.FC = () => {
 
                     {/* Historical Cases Widget */}
                     {msg.structuredData.type === 'historical_cases' && msg.structuredData.similarCases && (
-                      <div className="p-3.5 rounded-xl bg-[#0F172A] border border-slate-700 space-y-2 font-mono text-xs">
-                        <div className="flex items-center justify-between text-slate-200 font-bold">
-                          <span>Institutional Resolution Precedents</span>
-                          <span className="text-emerald-400">
-                            88.9% Success Playbook
-                            {backendMode === 'live' && (
-                              <span className="ml-1 text-[10px] text-slate-500 font-normal font-mono">(illustrative)</span>
-                            )}
-                          </span>
+                      msg.structuredData.similarCases.total > 0 ? (
+                        <div className="p-3.5 rounded-xl bg-[#0F172A] border border-slate-700 space-y-2 font-mono text-xs">
+                          <div className="flex items-center justify-between text-slate-200 font-bold">
+                            <span>Institutional Resolution Precedents</span>
+                            <span className="text-emerald-400">
+                              {msg.structuredData.similarCases.total} Matched Cases
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-1">
+                            <div className="p-2 rounded bg-[#162032] border border-slate-800">
+                              <span className="text-slate-400 block">Corrected SSI</span>
+                              <span className="text-sm font-bold text-emerald-400">
+                                {msg.structuredData.similarCases.corrected}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-[#162032] border border-slate-800">
+                              <span className="text-slate-400 block">Escalated</span>
+                              <span className="text-sm font-bold text-amber-400">
+                                {msg.structuredData.similarCases.escalated}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded bg-[#162032] border border-slate-800">
+                              <span className="text-slate-400 block">Failed</span>
+                              <span className="text-sm font-bold text-rose-400">
+                                {msg.structuredData.similarCases.failed}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-center text-[10px] pt-1">
-                          <div className="p-2 rounded bg-[#162032] border border-slate-800">
-                            <span className="text-slate-400 block">Corrected SSI</span>
-                            <span className="text-sm font-bold text-emerald-400">
-                              {msg.structuredData.similarCases.corrected} (67%)
-                            </span>
-                          </div>
-                          <div className="p-2 rounded bg-[#162032] border border-slate-800">
-                            <span className="text-slate-400 block">Escalated</span>
-                            <span className="text-sm font-bold text-amber-400">
-                              {msg.structuredData.similarCases.escalated} (22%)
-                            </span>
-                          </div>
-                          <div className="p-2 rounded bg-[#162032] border border-slate-800">
-                            <span className="text-slate-400 block">Failed</span>
-                            <span className="text-sm font-bold text-rose-400">
-                              {msg.structuredData.similarCases.failed} (11%)
-                            </span>
-                          </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-[#0F172A] border border-dashed border-slate-700 font-mono text-xs text-slate-400 flex items-center justify-between">
+                          <span>No verified historical precedents available for this trade.</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded border bg-slate-800 text-slate-300 border-slate-600 shrink-0 ml-2">DATA NOT AVAILABLE</span>
                         </div>
-                      </div>
+                      )
                     )}
                   </div>
                 )}
@@ -309,6 +316,22 @@ export const CopilotView: React.FC = () => {
                     ))}
                   </div>
                 )}
+
+                {/* Provenance footer — question → answer → evidence → source */}
+                {!isUser && (
+                  <div className="pt-1.5 flex items-center gap-1.5 text-[9px] font-mono text-slate-500 uppercase tracking-wider">
+                    <Cpu className="w-3 h-3 text-cyan-500/60" />
+                    <span>Cortex Analyst</span>
+                    <span className="text-slate-600">•</span>
+                    <span>
+                      {backendMode === 'live'
+                        ? 'Live Snowflake'
+                        : backendMode === 'checking'
+                        ? 'Checking…'
+                        : 'Local Fallback'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -317,18 +340,18 @@ export const CopilotView: React.FC = () => {
       </div>
 
       {/* Input Bar */}
-      <form onSubmit={handleSend} className="bg-[#0F172A] p-2 rounded-2xl border border-slate-700/80 flex items-center space-x-2 shrink-0 shadow-lg">
+      <form onSubmit={handleSend} className="bg-[#0F172A] p-2 rounded-2xl border border-slate-700/80 focus-within:border-cyan-500/50 transition-colors flex items-center space-x-2 shrink-0 shadow-lg">
         <input
           type="text"
           value={inputPrompt}
           onChange={(e) => setInputPrompt(e.target.value)}
           placeholder="Ask ClearSet AI about settlement exceptions, risk scoring, SOP guidance, or counterparty history..."
-          className="flex-1 bg-transparent px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-mono"
+          className="flex-1 bg-transparent px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none font-mono min-w-0"
         />
         <button
           type="submit"
           disabled={!inputPrompt.trim()}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-bold flex items-center space-x-1.5 transition-all shadow-md shadow-blue-600/20"
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-md shadow-blue-600/20 shrink-0"
         >
           <span>Send</span>
           <Send className="w-3.5 h-3.5" />

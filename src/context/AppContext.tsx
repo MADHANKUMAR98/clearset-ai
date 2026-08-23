@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import type { CaseRecord, CopilotMessage, ExceptionItem, InvestigationStep, SettlementEvent, SettlementInstruction } from '../types';
 import type { DashboardStats } from '../services/types';
 import { settlementService } from '../services/settlementService';
@@ -39,6 +39,10 @@ interface AppContextType {
   activeSettlementInstruction: SettlementInstruction | null;
   /** Backend/Snowflake connection status, driven by GET /api/health. */
   backendMode: BackendMode;
+  /** Epoch ms of the last successful exceptions load — drives freshness indicators. */
+  lastDataRefreshAt: number | null;
+  /** Re-query the service layer for fresh exceptions (Snowflake first, local fallback). */
+  refreshData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -62,6 +66,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Navbar uses its own fetchHealth() call; this one drives CopilotView and any other consumer.
   const [backendMode, setBackendMode] = useState<BackendMode>('checking');
 
+  // Freshness of the exception dataset
+  const [lastDataRefreshAt, setLastDataRefreshAt] = useState<number | null>(null);
+
+  const loadExceptions = useCallback(async () => {
+    const data = await settlementService.getExceptions();
+    setExceptions(data);
+    setLastDataRefreshAt(Date.now());
+  }, []);
+
+  const refreshData = useCallback(async () => {
+    await loadExceptions();
+  }, [loadExceptions]);
+
   // Check health once on mount
   useEffect(() => {
     let cancelled = false;
@@ -75,10 +92,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Initial load of exceptions from settlementService (Snowflake → local fallback)
   useEffect(() => {
-    settlementService.getExceptions().then((data) => {
-      setExceptions(data);
-    });
-  }, []);
+    loadExceptions();
+  }, [loadExceptions]);
 
   // When the active trade changes, load its settlement events and SSI via the service layer.
   // HybridSettlementService will try the live endpoint first, then fall back to local data.
@@ -141,7 +156,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const interval = setInterval(async () => {
       if (currentStep < 10) {
         const stepNum = currentStep + 1;
-        const stepDetails = await cortexService.executeStep(stepNum, targetEx.trade);
+        const stepDetails = await cortexService.executeStep(
+          stepNum,
+          targetEx.trade,
+          backendMode === 'live' ? 'live' : 'local'
+        );
 
         setInvestigationSteps((prev) =>
           prev.map((step, idx) => {
@@ -179,8 +198,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const ex = exceptions.find((e) => e.tradeId === tradeId);
     if (!ex) return;
 
-    const newCaseId = `INV-2026-009${Math.floor(30 + Math.random() * 60)}`;
-    const recommendation = await cortexService.generateRecommendation(ex.trade);
+    // Deterministic, collision-free case ID derived from existing case records
+    const nextCaseSeq = cases.reduce((max, c) => {
+      const match = /INV-2026-(\d+)/.exec(c.caseId);
+      return Math.max(max, match ? parseInt(match[1], 10) : 0);
+    }, 0) + 1;
+    const newCaseId = `INV-2026-${String(nextCaseSeq).padStart(3, '0')}`;
+    const recommendation = await cortexService.generateRecommendation(ex.trade, ex.exceptionType);
 
     const newCase: CaseRecord = {
       caseId: newCaseId,
@@ -260,7 +284,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCopilotMessages((prev) => [...prev, userMsg]);
 
     const activeTrade = activeException?.trade;
-    const response = await cortexService.queryCopilot(text, activeTrade);
+    const response = await cortexService.queryCopilot(
+      text,
+      activeTrade
+        ? { trade: activeTrade, riskScore: activeException?.riskScore.totalScore }
+        : undefined
+    );
 
     setTimeout(() => {
       // If user prompted to investigate, trigger investigation automatically
@@ -311,6 +340,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeSettlementEvents,
         activeSettlementInstruction,
         backendMode,
+        lastDataRefreshAt,
+        refreshData,
       }}
     >
       {children}

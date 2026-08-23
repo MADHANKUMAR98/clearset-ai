@@ -1,75 +1,110 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  FolderArchive, 
-  History, 
-  ArrowRight, 
-  UserCheck, 
-  Cpu, 
+import {
+  FolderArchive,
+  History,
+  ArrowRight,
+  UserCheck,
+  Cpu,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  Inbox,
+  Loader2
 } from 'lucide-react';
 import type { CaseRecord } from '../types';
 import { fetchCases } from '../services/apiClient';
 
 export const CasesView: React.FC = () => {
-  const { cases, selectExceptionForInvestigation, backendMode } = useApp();
-  const [selectedCase, setSelectedCase] = useState<CaseRecord>(cases[0]);
+  const { cases, exceptions, selectExceptionForInvestigation, backendMode } = useApp();
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
   const [loadingCases, setLoadingCases] = useState(false);
   const [casesSource, setCasesSource] = useState<'live' | 'local'>('local');
+  const [liveCases, setLiveCases] = useState<CaseRecord[]>([]);
 
-  // Load cases from Snowflake when in live mode
+  // tradeId -> tradeValue lookup so persisted cases show real exposure
+  const tradeValueByTradeId = useMemo(() => {
+    const map = new Map<string, number>();
+    exceptions.forEach((ex) => map.set(ex.tradeId, ex.trade.tradeValue));
+    return map;
+  }, [exceptions]);
+
+  // Load cases persisted in Snowflake when in live mode.
+  // Kept in view-local state and merged below — never discarded.
   useEffect(() => {
     if (backendMode === 'live') {
+      let cancelled = false;
       setLoadingCases(true);
-      fetchCases(10000).then((response) => {
-        if (response.success && response.mode === 'snowflake' && response.data.length > 0) {
-          // Convert API response to CaseRecord format
-          const loadedCases: CaseRecord[] = response.data.map((c) => ({
-            caseId: c.caseId,
-            tradeId: c.tradeId,
-            tradeValue: 0, // Not in API response, would need to fetch from trade
-            riskScore: c.riskScore,
-            severity: c.riskScore >= 80 ? 'CRITICAL' : c.riskScore >= 60 ? 'HIGH' : 'MEDIUM',
-            rootCause: c.rootCause,
-            aiRecommendation: c.recommendation,
-            humanDecision: c.status === 'APPROVED' ? 'APPROVED' : 'REJECTED',
-            approvedBy: c.approvedBy || 'Unknown',
-            approvedAt: c.approvedAt || new Date().toISOString(),
-            executionStatus: c.resolutionOutcome ? 'CONFIRMED_SETTLED' : 'IN_PROGRESS',
-            resolutionOutcome: c.resolutionOutcome,
-            createdAt: c.createdAt,
-            auditTrail: [
-              { timestamp: c.createdAt, action: 'CASE_CREATED', actor: 'SYSTEM', details: 'Case persisted from Snowflake' },
-              ...(c.approvedAt ? [{ timestamp: c.approvedAt, action: 'HUMAN_APPROVAL', actor: 'ANALYST', details: `Approved by ${c.approvedBy}` }] : []),
-            ],
-          }));
-          // Merge with local cases (avoid duplicates by caseId)
-          const existingIds = new Set(cases.map(c => c.caseId));
-          const newCases = loadedCases.filter(c => !existingIds.has(c.caseId));
-          // Note: In a real app, this would update the context. For now we just show provenance.
-        }
-        setCasesSource(response.mode === 'snowflake' ? 'live' : 'local');
-        setLoadingCases(false);
-      }).catch(() => {
-        setLoadingCases(false);
-        setCasesSource('local');
-      });
-    } else {
-      setCasesSource('local');
+      fetchCases(10000)
+        .then((response) => {
+          if (cancelled) return;
+          if (response.success && response.mode === 'snowflake') {
+            const loadedCases: CaseRecord[] = response.data.map((c) => ({
+              caseId: c.caseId,
+              tradeId: c.tradeId,
+              tradeValue: tradeValueByTradeId.get(c.tradeId) ?? 0,
+              riskScore: c.riskScore,
+              severity: c.riskScore >= 80 ? 'CRITICAL' : c.riskScore >= 60 ? 'HIGH' : 'MEDIUM',
+              rootCause: c.rootCause,
+              aiRecommendation: c.recommendation,
+              humanDecision: c.status === 'APPROVED' ? 'APPROVED' : 'REJECTED',
+              approvedBy: c.approvedBy || 'Unknown',
+              approvedAt: c.approvedAt || undefined,
+              executionStatus: c.resolutionOutcome ? 'CONFIRMED_SETTLED' : 'IN_PROGRESS',
+              resolutionOutcome: c.resolutionOutcome ?? undefined,
+              createdAt: c.createdAt,
+              auditTrail: [
+                { timestamp: c.createdAt, action: 'CASE_CREATED', actor: 'SYSTEM' as const, details: 'Case persisted to Snowflake RESOLUTION_CASES.' },
+                ...(c.approvedAt ? [{ timestamp: c.approvedAt, action: 'HUMAN_APPROVAL', actor: 'ANALYST' as const, details: `Approved by ${c.approvedBy || 'analyst'}.` }] : []),
+              ],
+            }));
+            setLiveCases(loadedCases);
+            setCasesSource('live');
+          } else {
+            setLiveCases([]);
+            setCasesSource('local');
+          }
+          setLoadingCases(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLiveCases([]);
+          setCasesSource('local');
+          setLoadingCases(false);
+        });
+      return () => { cancelled = true; };
     }
-  }, [backendMode]);
+    setLiveCases([]);
+    setCasesSource('local');
+    return undefined;
+  }, [backendMode, tradeValueByTradeId]);
 
-  const filteredCases = cases.filter((c) => {
-    if (!filterQuery) return true;
-    const q = filterQuery.toLowerCase();
-    return (
-      c.caseId.toLowerCase().includes(q) ||
-      c.tradeId.toLowerCase().includes(q) ||
-      c.rootCause.toLowerCase().includes(q)
-    );
-  });
+  // Session cases (approved this session) + Snowflake-persisted cases, deduped by caseId.
+  const allCases = useMemo(() => {
+    const seen = new Set<string>();
+    return [...cases, ...liveCases].filter((c) => {
+      if (seen.has(c.caseId)) return false;
+      seen.add(c.caseId);
+      return true;
+    });
+  }, [cases, liveCases]);
+
+  const filteredCases = useMemo(
+    () =>
+      allCases.filter((c) => {
+        if (!filterQuery) return true;
+        const q = filterQuery.toLowerCase();
+        return (
+          c.caseId.toLowerCase().includes(q) ||
+          c.tradeId.toLowerCase().includes(q) ||
+          c.rootCause.toLowerCase().includes(q)
+        );
+      }),
+    [allCases, filterQuery]
+  );
+
+  const selectedCase =
+    filteredCases.find((c) => c.caseId === selectedCaseId) ?? filteredCases[0] ?? null;
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -81,22 +116,26 @@ export const CasesView: React.FC = () => {
             Institutional Cases & Memory Ledger
           </h1>
           <p className="text-xs text-slate-400 mt-1 font-mono">
-            Immutable audit trail of autonomous investigations, human approvals, and operational resolutions
+            Immutable audit trail of autonomous investigations, human approvals, and operational resolutions ({allCases.length} on record)
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2 text-xs font-mono bg-[#0F172A] border border-slate-700 px-3 py-1.5 rounded-xl">
-            <ShieldCheck className={`w-3.5 h-3.5 ${casesSource === 'live' ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            {loadingCases ? (
+              <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+            ) : (
+              <ShieldCheck className={`w-3.5 h-3.5 ${casesSource === 'live' ? 'text-emerald-400' : 'text-cyan-400'}`} />
+            )}
             <span className={`${casesSource === 'live' ? 'text-emerald-400' : 'text-cyan-400'} font-bold`}>
-              {casesSource === 'live' ? 'LIVE SNOWFLAKE' : 'LOCAL FALLBACK'}
+              {loadingCases ? 'LOADING…' : casesSource === 'live' ? 'LIVE SNOWFLAKE' : 'LOCAL FALLBACK'}
             </span>
           </div>
 
           <div className="flex items-center space-x-2 text-xs font-mono bg-[#0F172A] border border-slate-700 px-3.5 py-1.5 rounded-xl">
             <Cpu className="w-4 h-4 text-emerald-400" />
-            <span className="text-slate-300">Continuous Learning Loop:</span>
-            <span className="text-emerald-400 font-bold">ACTIVE</span>
+            <span className="text-slate-300">Memory Feed:</span>
+            <span className="text-emerald-400 font-bold">{allCases.length} CASES</span>
           </div>
         </div>
       </div>
@@ -119,13 +158,15 @@ export const CasesView: React.FC = () => {
           <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
             {filteredCases.map((c) => {
               const isSelected = selectedCase?.caseId === c.caseId;
+              const valueLabel =
+                c.tradeValue > 0 ? `$${(c.tradeValue / 1000000).toFixed(1)}M` : 'VALUE N/A';
               return (
                 <div
                   key={c.caseId}
-                  onClick={() => setSelectedCase(c)}
+                  onClick={() => setSelectedCaseId(c.caseId)}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer shadow-sm ${
                     isSelected
-                      ? 'bg-[#1C2A44] border-indigo-500/50 shadow-md shadow-indigo-950/30'
+                      ? 'bg-[#1C2A44] border-indigo-500/50 shadow-md shadow-indigo-950/30 shadow-[inset_3px_0_0_0_#6366F1]'
                       : 'bg-[#162032] border-slate-700 hover:bg-[#1B273F]'
                   }`}
                 >
@@ -155,19 +196,37 @@ export const CasesView: React.FC = () => {
                   </div>
 
                   <div className="text-[11px] text-slate-400 mt-2 flex items-center justify-between font-mono">
-                    <span>${(c.tradeValue / 1000000).toFixed(1)}M</span>
+                    <span>{valueLabel}</span>
                     <span className="text-rose-400 font-bold">Score: {c.riskScore}</span>
                     <span className="text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               );
             })}
+
+            {filteredCases.length === 0 && !loadingCases && (
+              <div className="py-12 flex flex-col items-center text-center space-y-2 text-slate-400">
+                <Inbox className="w-8 h-8 text-slate-600" />
+                <div className="text-xs font-mono leading-relaxed">
+                  No resolution cases recorded yet.
+                  <br />
+                  Complete an investigation and approve the recommended action to create the first case.
+                </div>
+              </div>
+            )}
+
+            {loadingCases && filteredCases.length === 0 && (
+              <div className="py-12 flex flex-col items-center text-slate-400 space-y-2">
+                <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+                <span className="text-xs font-mono">Loading cases from Snowflake…</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Column: Detailed Case Dossier & Audit Trail (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
-          {selectedCase && (
+          {selectedCase ? (
             <div className="bg-[#0F172A] border border-slate-700/80 p-6 rounded-2xl space-y-5 shadow-lg">
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
@@ -181,7 +240,7 @@ export const CasesView: React.FC = () => {
                     </span>
                   </div>
                   <div className="text-xs text-slate-400 font-mono mt-1">
-                    Value: ${(selectedCase.tradeValue / 1000000).toFixed(2)}M • Risk Score: {selectedCase.riskScore}/100 ({selectedCase.severity})
+                    Value: {selectedCase.tradeValue > 0 ? `$${(selectedCase.tradeValue / 1000000).toFixed(2)}M` : 'DATA NOT AVAILABLE'} • Risk Score: {selectedCase.riskScore}/100 ({selectedCase.severity})
                   </div>
                 </div>
 
@@ -213,7 +272,7 @@ export const CasesView: React.FC = () => {
                     Decision: <span className="text-emerald-400">{selectedCase.humanDecision}</span>
                   </div>
                   <div className="text-[11px] text-slate-300">
-                    Authorized by: {selectedCase.approvedBy || 'Alex Mercer'}
+                    Authorized by: {selectedCase.approvedBy || 'Unknown'}
                   </div>
                   {selectedCase.approvedAt && (
                     <div className="text-[10px] text-slate-400 font-mono">
@@ -285,6 +344,15 @@ export const CasesView: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="bg-[#0F172A] border border-dashed border-slate-700 p-12 rounded-2xl flex flex-col items-center justify-center text-center space-y-3 min-h-[400px]">
+              <FolderArchive className="w-10 h-10 text-slate-600" />
+              <div className="text-sm font-bold text-slate-200">No Case Dossier Available</div>
+              <p className="text-xs text-slate-400 max-w-sm font-mono leading-relaxed">
+                RESOLUTION_CASES currently contains zero rows in this environment.
+                Approve a recommended resolution in the investigation workspace to create the first auditable case record.
+              </p>
             </div>
           )}
         </div>
