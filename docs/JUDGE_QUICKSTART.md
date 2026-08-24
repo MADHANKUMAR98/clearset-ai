@@ -17,7 +17,7 @@ The design rule that governs everything: **every number wears its provenance** (
 | Path | How | Notes |
 |------|-----|-------|
 | **Production (SPCS)** | https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app | Two supported login options below |
-| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires 2026-09-07 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level |
+| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires 2026-09-29 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level |
 | **Local run** | See README "Quickstart" — backend :3001 + Vite :5173 | Same code that's deployed (image digest `sha256:fd6cfa69…`); runs against your own Snowflake trial account |
 
 **Why there is no public guest mode:** the app is OAuth-gated inside a Snowflake account by design — a settlement copilot anyone can open would be a compliance failure. Judge accounts are provisioned read-only and time-boxed instead.
