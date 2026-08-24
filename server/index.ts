@@ -16,6 +16,10 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
 
 import { snowflakeClient } from './snowflakeClient.js';
+import { getSlackStatusSummary, notifyCriticalException } from './services/slackService.js';
+import type { CriticalExceptionNotification, SlackProvenance } from './services/slackService.js';
+import { generateCaseAuditReport, isValidCaseId, ReportError } from './services/auditReportService.js';
+import { fetchImpactMetrics } from './services/metricsService.js';
 
 const app = express();
 // Production (Snowflake App Runtime) expects port 8080.
@@ -943,6 +947,144 @@ app.get('/api/cases', async (_req: Request, res: Response) => {
 });
 
 // ============================================================================
+// GET /api/metrics
+// Operational impact metrics computed live from Snowflake: open fail exposure,
+// critical exposure, estimated CSDR-style accrual (documented assumption rate),
+// and human-approval throughput/turnaround from RESOLUTION_CASES.
+// Read-only. Returns mode:'local' with data:null when Snowflake is unreachable.
+// ============================================================================
+app.get('/api/metrics', async (_req: Request, res: Response) => {
+  try {
+    const metrics = await fetchImpactMetrics(snowflakeClient);
+    return res.json({
+      success: true,
+      mode: metrics.source === 'snowflake' ? 'snowflake' : 'local',
+      data: metrics,
+    });
+  } catch (err: any) {
+    console.error('[ClearSet] Impact metrics error:', err?.message);
+    return res.status(200).json({
+      success: false,
+      mode: 'local',
+      data: null,
+      message: 'Impact metrics unavailable',
+      error: err?.message || 'Failed to compute impact metrics',
+    });
+  }
+});
+
+// ============================================================================
+// GET /api/slack/status
+// Reports whether the optional Slack notification integration is active.
+// Never exposes the webhook URL or any secret — status labels only.
+// ============================================================================
+app.get('/api/slack/status', (_req: Request, res: Response) => {
+  const slack = getSlackStatusSummary();
+  return res.json({
+    success: true,
+    ...slack,
+    message:
+      slack.mode === 'ENABLED'
+        ? 'Slack notifications are active for critical approval alerts.'
+        : slack.mode === 'DISABLED'
+          ? 'Slack notifications are disabled (SLACK_ENABLED=false).'
+          : 'Slack notifications enabled but SLACK_WEBHOOK_URL is missing or invalid.',
+  });
+});
+
+// ============================================================================
+// POST /api/notify/critical-exception
+// Optional Slack notification when a critical investigation reaches the
+// recommendation/approval stage. Fire-and-forget from the client: a Slack
+// failure NEVER affects investigation or the /api/cases approval flow.
+// Request: { tradeId, exceptionType, severity, riskScore, tradeValue,
+//            counterpartyName, rootCause, recommendedResolution,
+//            applicableSop?, provenance, dataMode? }
+// ============================================================================
+app.post('/api/notify/critical-exception', async (req: Request, res: Response) => {
+  const body = req.body as Partial<CriticalExceptionNotification>;
+
+  const required: Array<[string, unknown]> = [
+    ['tradeId', body.tradeId],
+    ['exceptionType', body.exceptionType],
+    ['severity', body.severity],
+    ['riskScore', body.riskScore],
+    ['tradeValue', body.tradeValue],
+    ['counterpartyName', body.counterpartyName],
+    ['rootCause', body.rootCause],
+    ['recommendedResolution', body.recommendedResolution],
+  ];
+  const missing = required.filter(([, v]) => v === undefined || v === null || v === '').map(([k]) => k);
+  if (missing.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: `Missing required fields: ${missing.join(', ')}`,
+    });
+  }
+
+  const provenance: SlackProvenance =
+    body.provenance === 'LIVE SNOWFLAKE' || body.provenance === 'COMPUTED' || body.provenance === 'LOCAL FALLBACK'
+      ? body.provenance
+      : 'LIVE SNOWFLAKE';
+
+  try {
+    const result = await notifyCriticalException(
+      { ...(body as CriticalExceptionNotification), provenance },
+    );
+    const slack = getSlackStatusSummary();
+    return res.json({
+      success: true,
+      delivered: result.delivered,
+      reason: result.reason ?? null,
+      slack,
+      message: result.delivered
+        ? 'Slack notification delivered.'
+        : 'Slack notification skipped (integration disabled or unavailable) — application flow unaffected.',
+    });
+  } catch (err: any) {
+    // Defensive: notifyCriticalException never throws, but never let this route
+    // become a failure point for the caller either.
+    console.error('[ClearSet] Slack notify route error:', err?.message);
+    return res.status(200).json({
+      success: true,
+      delivered: false,
+      reason: 'DELIVERY_ERROR',
+      slack: getSlackStatusSummary(),
+      message: 'Slack notification skipped — application flow unaffected.',
+    });
+  }
+});
+
+// ============================================================================
+// GET /api/cases/:caseId/report
+// Audit-ready PDF for a HUMAN-APPROVED case already persisted in
+// RESOLUTION_CASES. Read-only: generates evidence document, triggers no
+// operational action. 404 when the case does not exist in the ledger.
+// ============================================================================
+app.get('/api/cases/:caseId/report', async (req: Request, res: Response) => {
+  const caseId = String(req.params.caseId ?? '');
+
+  if (!isValidCaseId(caseId)) {
+    return res.status(400).json({ success: false, error: 'Invalid case ID.' });
+  }
+
+  try {
+    const { buffer } = await generateCaseAuditReport(caseId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="ClearSet-Audit-${caseId}.pdf"`);
+    res.setHeader('Content-Length', String(buffer.length));
+    return res.status(200).send(buffer);
+  } catch (err: any) {
+    if (err instanceof ReportError) {
+      const status = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'INVALID_CASE_ID' ? 400 : 500;
+      return res.status(status).json({ success: false, code: err.code, error: err.message });
+    }
+    console.error('[ClearSet] Audit report generation failed:', err?.message || 'unknown');
+    return res.status(500).json({ success: false, error: 'Report generation failed.' });
+  }
+});
+
+// ============================================================================
 // Global error handler
 // ============================================================================
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -991,6 +1133,12 @@ const server = app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`  POST /api/cases`);
   console.log(`  POST /api/cortex/search`);
   console.log(`  POST /api/cortex/analyst`);
+  console.log(`  GET  /api/slack/status`);
+  console.log(`  POST /api/notify/critical-exception`);
+  const slackStatus = getSlackStatusSummary();
+  console.log(
+    `[ClearSet Backend] Slack Notifications: ${slackStatus.mode}${slackStatus.enabled ? '' : ' (set SLACK_ENABLED=true to activate)'}`,
+  );
 });
 
 server.on('error', (err: NodeJS.ErrnoException) => {

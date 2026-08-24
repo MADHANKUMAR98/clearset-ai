@@ -44,6 +44,7 @@ export const InvestigationView: React.FC = () => {
     activeSettlementEvents,
     activeSettlementInstruction,
     backendMode,
+    slackStatus,
   } = useApp();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -659,9 +660,27 @@ export const InvestigationView: React.FC = () => {
                     Human Authorization Required
                   </span>
                 </div>
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 tracking-wide">
-                  AI DISPATCH LOCKED
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 tracking-wide">
+                    AI DISPATCH LOCKED
+                  </span>
+                  {slackStatus && (
+                    <span
+                      className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border tracking-wide ${
+                        slackStatus.mode === 'ENABLED'
+                          ? 'border-slate-600 bg-slate-800/60 text-slate-300'
+                          : 'border-slate-800 bg-transparent text-slate-500'
+                      }`}
+                      title={
+                        slackStatus.mode === 'ENABLED'
+                          ? 'Critical approval alerts are mirrored to the operations Slack channel. Approval still happens here.'
+                          : slackStatus.message || 'Slack notifications are not enabled.'
+                      }
+                    >
+                      {slackStatus.mode === 'ENABLED' ? 'SLACK ENABLED' : 'SLACK DISABLED'}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <ul className="space-y-1 text-[11px] font-mono text-slate-400">

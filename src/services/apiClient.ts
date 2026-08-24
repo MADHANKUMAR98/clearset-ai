@@ -5,6 +5,13 @@
 // No Snowflake credentials are ever passed to browser code.
 // ============================================================================
 
+import type {
+  ImpactMetricsResponse,
+  NotifyCriticalExceptionRequest,
+  NotifyCriticalExceptionResponse,
+  SlackStatusResponse,
+} from './types';
+
 export type ApiMode = 'snowflake' | 'local';
 
 const DEFAULT_TIMEOUT_MS = 8000;
@@ -319,5 +326,67 @@ export async function fetchCases(
     return payload;
   } catch {
     return { success: false, mode: 'local', data: [], message: 'Cases unavailable' };
+  }
+}
+
+// ============================================================================
+// GET /api/slack/status
+// Reports whether the optional Slack notification channel is active.
+// ============================================================================
+export async function fetchSlackStatus(
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<SlackStatusResponse> {
+  try {
+    const payload = await fetchWithTimeout<SlackStatusResponse>('/api/slack/status', {}, timeoutMs);
+    if (!payload || typeof payload.enabled !== 'boolean') {
+      return { success: false, enabled: false, configured: false, mode: 'DISABLED' };
+    }
+    return payload;
+  } catch {
+    return { success: false, enabled: false, configured: false, mode: 'DISABLED' };
+  }
+}
+
+// ============================================================================
+// POST /api/notify/critical-exception
+// Fire-and-forget Slack alert when a critical investigation reaches the
+// approval stage. Never throws — callers must not depend on delivery.
+// ============================================================================
+export async function notifyCriticalException(
+  request: NotifyCriticalExceptionRequest,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<NotifyCriticalExceptionResponse> {
+  try {
+    const payload = await fetchWithTimeout<NotifyCriticalExceptionResponse>(
+      '/api/notify/critical-exception',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+      },
+      timeoutMs,
+    );
+    return payload ?? { success: false, delivered: false };
+  } catch {
+    // Slack unavailability is never an application error.
+    return { success: false, delivered: false, reason: 'DELIVERY_ERROR' };
+  }
+}
+
+// ============================================================================
+// GET /api/metrics
+// Operational impact metrics — read-only, computed live from Snowflake.
+// ============================================================================
+export async function fetchImpactMetrics(
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<ImpactMetricsResponse> {
+  try {
+    const payload = await fetchWithTimeout<ImpactMetricsResponse>('/api/metrics', {}, timeoutMs);
+    if (!payload || payload.data === null || typeof payload.data !== 'object') {
+      return { success: false, mode: 'local', data: null, message: 'Impact metrics unavailable' };
+    }
+    return payload;
+  } catch {
+    return { success: false, mode: 'local', data: null, message: 'Impact metrics unavailable' };
   }
 }

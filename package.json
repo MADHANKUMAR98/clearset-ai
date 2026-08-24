@@ -11,7 +11,9 @@
     "server": "node server/dist/index.js",
     "server:dev": "node server/dist/index.js",
     "server:build": "tsc -p server/tsconfig.json",
-    "server:start": "node server/dist/index.js"
+    "server:start": "node server/dist/index.js",
+    "server:test": "npm run server:build && node --test server/test/slackService.test.mjs && node --test server/test/auditReportService.test.mjs && node --test server/test/cocoInvestigate.test.mjs && node --test server/test/metricsService.test.mjs",
+    "coco:investigate": "node scripts/coco_investigate.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

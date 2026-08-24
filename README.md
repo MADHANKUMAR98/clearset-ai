@@ -14,7 +14,9 @@
 
 **🔴 LIVE IN PRODUCTION → [mafdxb-ziaihbo-fr43183.snowflakecomputing.app](https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app)** *(Snowflake SSO required)*
 
-Image digest `sha256:cb2cecf1…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
+**⏱️ Judges: start here → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)** — 5-minute evaluation script with honesty spot-checks.
+
+Image digest `sha256:fd6cfa69…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
 
 </div>
 
@@ -53,6 +55,40 @@ Five moves, one deterministic loop:
 3. **🪜 Procedural Investigation (10-Step Workflow)** — Autonomous verification marching through trade master data → depository gateway statuses → SSI directories → 30-day counterparty failure rates → similar historical cases → binding SOP sections. Like a senior operator's checklist, executed by software.
 4. **🧵 Evidence Traceability** — Complete visual lineage from *"WHY is this trade critical?"* straight into supporting telemetry, historical playbooks, and the exact SOP paragraph that governs the fix.
 5. **🤝 Human-in-the-Loop Authorization** — The AI recommends (e.g., *SWIFT MT599 expedited repair + desk escalation*) — but the **dispatch button stays locked until a human clicks Approve**. No exceptions. By design.
+
+---
+
+## 🤖 Genuine CoCo CLI Integration
+
+This is not a mock agent. ClearSet ships a **registered Cortex Code skill** and a launcher that drives the real CoCo CLI (`cortex exec`) against live Snowflake:
+
+```bash
+npm run coco:investigate -- TRD-92831
+```
+
+- **Skill:** `investigate-settlement-exception` (`.snowflake/cortex/skills/` — visible in `cortex skill list`)
+- **Launcher:** `scripts/coco_investigate.mjs` — preflights app health, writes the prompt via `--file` (shell-quoting-safe), runs `cortex exec --allowed Bash --max-turns 60`, enforces ID validation
+- **The agent does real work:** it discovers `snowsql` on its own, queries `TRADES`/`EXCEPTIONS`/`COUNTERPARTIES`/`SETTLEMENT_EVENTS` itself, cross-references SOPs, and produces a structured investigation ending in `AWAITING ANALYST AUTHORISATION`
+- **Verified live** on both hero trades with zero field drift vs raw SQL ground truth — and zero cross-contamination between runs (`--no-history`)
+- Full procedure, safety notes, and verification transcript: [`docs/COCO_RUNBOOK.md`](docs/COCO_RUNBOOK.md)
+
+---
+
+## 📄 Audit-Ready Resolution Reports
+
+Every human-approved case can generate an evidence-grade PDF from `RESOLUTION_CASES` + live trade/counterparty/depository joins + fresh Cortex retrieval at generation time:
+
+```bash
+curl -o report.pdf http://localhost:3001/api/cases/<CASE_ID>/report
+```
+
+Deterministic factor math, root cause, recommendation, approval identity/timestamps, SWIFT event history, and the exact SOP paragraphs retrieved *that minute* — every value sourced, unavailable evidence labeled unavailable. Read-only: generation triggers no operational action.
+
+---
+
+## 📊 Operational Impact Metrics
+
+`GET /api/metrics` computes judge-facing impact numbers live from Snowflake — open fail exposure, critical exposure, estimated CSDR-style accrual (documented modeling assumption, labeled `ESTIMATE`), and human-approval throughput with `CREATED_AT → APPROVED_AT` turnaround. Rendered as an additive dashboard tile; honest `DATA NOT AVAILABLE` when Snowflake is unreachable.
 
 ---
 
@@ -134,6 +170,10 @@ Two protected production records you'll see throughout the app:
 | **7. UI Polish Pass** | Shared primitives & design tokens, skeleton loading, severity rails, motion, focus rings | ✅ |
 | **8. Release Audit** | Secrets sweep, image scan, code review — zero findings | ✅ |
 | **9. SPCS Deployment** | Built → pushed → upgraded → verified RUNNING/OAUTH/READY | ✅ |
+| **10. Slack Alerts** | Optional critical-exception notifications — never bypasses approval gate | ✅ |
+| **11. Audit PDF Reports** | Evidence-grade report per approved case; deterministic + Cortex evidence | ✅ |
+| **12. CoCo CLI Integration** | Genuine `cortex exec` investigations via registered skill, live-verified | ✅ |
+| **13. Impact Metrics** | Live exposure & approval-throughput metrics with honest estimates | ✅ |
 
 ---
 
@@ -152,6 +192,9 @@ Every endpoint exercised against `CLEARSET_DB.CLEARSET_SCHEMA`:
 | `POST /api/cases` | Parameterized INSERT verified; test row cleaned up |
 | `POST /api/cortex/search` | Returns SOP-3.2 for TRD-92831, SOP-2.4 for TRD-81232 |
 | `POST /api/cortex/analyst` | TRD-92831 → 91/MISSING · TRD-81232 → 89/MISMATCHED |
+| `GET /api/cases/:caseId/report` | PDF 200 — factors, Cortex evidence, approval stamp (smoke-verified on pushed artifact) |
+| `GET /api/metrics` | `{ openExceptionCount: 19, openExceptionValueUSD: 74605000, casesApproved: 2, avgApprovalTurnaroundMinutes: 420 }` |
+| `POST /api/notify/critical-exception` | Delivered/skipped reported honestly; app flow unaffected either way |
 
 ---
 
@@ -190,6 +233,8 @@ clearset-ai/
 ├── server/                    # Node.js + TypeScript Backend (Express)
 │   ├── index.ts               # All API routes + Cortex Analyst auth
 │   ├── snowflakeClient.ts     # Dual-auth SDK client (password local / OAuth SPCS)
+│   ├── services/              # slackService · auditReportService · metricsService
+│   ├── test/                  # 37 node:test unit tests (no network required)
 │   ├── tsconfig.json          # NodeNext TypeScript config
 │   └── .env.example           # Credential template (NEVER commit .env)
 ├── snowflake/                 # SQL blueprints & platform setup
@@ -201,7 +246,9 @@ clearset-ai/
 │   ├── 08_resolution_cases.sql# RESOLUTION_CASES audit ledger DDL
 │   ├── 09_demo_data_expansion.sql # 35-trade multi-scenario portfolio
 │   └── 10_refresh_demo_dates.sql  # Re-anchor cutoffs to today (idempotent)
-├── skills/                    # CoCo CLI skill definitions (7)
+├── scripts/                      # coco_investigate.mjs — CoCo CLI launcher
+├── docs/                         # COCO_RUNBOOK.md + judge materials
+├── skills/                       # CoCo CLI skill definitions (7)
 │   ├── assess_settlement_risk/SKILL.md
 │   ├── determine_root_cause/SKILL.md
 │   ├── find_similar_cases/SKILL.md
@@ -277,6 +324,20 @@ curl -X POST http://localhost:3001/api/cortex/analyst \
 
 > 💡 Demo looking stale? `snowflake/10_refresh_demo_dates.sql` re-anchors all non-protected trades to today's cutoffs — idempotent, rerunnable forever.
 
+### Run the test suite (37 tests, no network needed)
+
+```bash
+npm run server:test
+```
+
+### Drive a real CoCo CLI investigation
+
+```bash
+npm run coco:investigate -- TRD-92831
+```
+
+Requires `cortex` on PATH and the backend healthy on :3001. The agent investigates autonomously and always ends awaiting human authorization.
+
 ---
 
 ## 🔐 Security Posture
@@ -305,7 +366,7 @@ docker build -t ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clea
 # 2. Push via Snowflake registry auth
 snow spcs image-registry login --connection fr43183
 docker push ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
-# → digest sha256:cb2cecf1cb53421a76f837574655fe840c0c2a9354f6e7ba9923981259f4e07a
+# → digest sha256:fd6cfa690c789039311a519c183a33e80b81e2907868302cb968bb174b21baf1
 
 # 3. Upgrade existing service (never create duplicates)
 snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \

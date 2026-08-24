@@ -70,3 +70,69 @@ export interface ICortexService {
     suggestedFollowUps?: string[];
   }>;
 }
+
+// ============================================================================
+// Slack integration (optional notification channel — never bypasses approval)
+// ============================================================================
+
+export type SlackIntegrationMode = 'ENABLED' | 'DISABLED' | 'NOT_CONFIGURED';
+
+export interface SlackStatusResponse {
+  success: boolean;
+  enabled: boolean;
+  configured: boolean;
+  mode: SlackIntegrationMode;
+  message?: string;
+}
+
+export interface NotifyCriticalExceptionRequest {
+  tradeId: string;
+  exceptionType: string;
+  severity: string;
+  riskScore: number;
+  tradeValue: number | string;
+  currency?: string;
+  counterpartyName: string;
+  counterpartyId?: string;
+  rootCause: string;
+  recommendedResolution: string;
+  applicableSop?: string;
+  provenance: 'LIVE SNOWFLAKE' | 'COMPUTED' | 'LOCAL FALLBACK';
+  /** Backend mode at send time — mirrors the backend's ApiMode vocabulary. */
+  dataMode?: 'snowflake' | 'local';
+}
+
+export interface NotifyCriticalExceptionResponse {
+  success: boolean;
+  delivered?: boolean;
+  reason?: string | null;
+  slack?: { enabled: boolean; configured: boolean; mode: SlackIntegrationMode };
+  message?: string;
+  error?: string;
+}
+
+// ============================================================================
+// Operational impact metrics (GET /api/metrics) — computed live from Snowflake
+// ============================================================================
+
+export interface ImpactMetrics {
+  generatedAt: string;
+  source: 'snowflake' | 'unavailable';
+  openExceptionCount: number;
+  openExceptionValueUSD: number;
+  criticalOpenValueUSD: number;
+  /** ESTIMATE — notional × assumed 0.025%/fail-day rate (documented constant). */
+  csdrExposurePerDayUSD: number;
+  casesApproved: number;
+  avgApprovalTurnaroundMinutes: number | null;
+}
+
+export interface ImpactMetricsResponse {
+  success: boolean;
+  mode: ApiModeString;
+  data: ImpactMetrics | null;
+  message?: string;
+  error?: string;
+}
+
+type ApiModeString = 'snowflake' | 'local';

@@ -9,7 +9,9 @@ import {
   Search,
   ShieldCheck,
   Inbox,
-  Loader2
+  Loader2,
+  FileDown,
+  AlertTriangle
 } from 'lucide-react';
 import type { CaseRecord } from '../types';
 import { fetchCases } from '../services/apiClient';
@@ -21,6 +23,9 @@ export const CasesView: React.FC = () => {
   const [loadingCases, setLoadingCases] = useState(false);
   const [casesSource, setCasesSource] = useState<'live' | 'local'>('local');
   const [liveCases, setLiveCases] = useState<CaseRecord[]>([]);
+  // Audit report generation state (only meaningful for persisted cases).
+  const [reportPhase, setReportPhase] = useState<'idle' | 'generating' | 'error'>('idle');
+  const [reportError, setReportError] = useState<string | null>(null);
 
   // tradeId -> tradeValue lookup so persisted cases show real exposure
   const tradeValueByTradeId = useMemo(() => {
@@ -105,6 +110,39 @@ export const CasesView: React.FC = () => {
 
   const selectedCase =
     filteredCases.find((c) => c.caseId === selectedCaseId) ?? filteredCases[0] ?? null;
+
+  /**
+   * Downloads the audit-ready PDF for a persisted case.
+   * Read-only — the endpoint never triggers operational actions.
+   */
+  const generateAuditReport = async (caseId: string) => {
+    setReportPhase('generating');
+    setReportError(null);
+    try {
+      const response = await fetch(`/api/cases/${encodeURIComponent(caseId)}/report`);
+      if (!response.ok) {
+        let message = `Report unavailable (HTTP ${response.status}).`;
+        try {
+          const body = await response.json();
+          if (body?.error) message = body.error;
+        } catch { /* non-JSON error body */ }
+        throw new Error(message);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `ClearSet-Audit-${caseId}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setReportPhase('idle');
+    } catch (err: any) {
+      setReportError(err?.message || 'Report generation failed.');
+      setReportPhase('error');
+    }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -244,14 +282,51 @@ export const CasesView: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => selectExceptionForInvestigation(selectedCase.tradeId)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#162032] hover:bg-blue-600 hover:text-white text-slate-200 text-xs font-bold border border-slate-700 transition-all"
-                >
-                  <span>Open in Workspace</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  {casesSource === 'live' && selectedCase && (
+                    <button
+                      onClick={() => generateAuditReport(selectedCase.caseId)}
+                      disabled={reportPhase === 'generating'}
+                      className="inline-flex items-center justify-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#162032] hover:bg-cyan-600/20 text-slate-200 hover:text-cyan-300 text-xs font-bold border border-slate-700 transition-all disabled:opacity-60 disabled:cursor-wait"
+                      title="Generate the audit-ready PDF resolution report for this case"
+                    >
+                      {reportPhase === 'generating' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                      ) : (
+                        <FileDown className="w-3.5 h-3.5" />
+                      )}
+                      <span>
+                        {reportPhase === 'generating'
+                          ? 'GENERATING\u2026'
+                          : reportPhase === 'error'
+                            ? 'RETRY REPORT'
+                            : 'GENERATE AUDIT REPORT'}
+                      </span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => selectExceptionForInvestigation(selectedCase.tradeId)}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#162032] hover:bg-blue-600 hover:text-white text-slate-200 text-xs font-bold border border-slate-700 transition-all"
+                  >
+                    <span>Open in Workspace</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
+
+              {reportPhase === 'generating' && (
+                <div className="text-[11px] font-mono text-cyan-300 flex items-center gap-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Assembling audit evidence from RESOLUTION_CASES and live records…
+                </div>
+              )}
+              {reportPhase === 'error' && reportError && (
+                <div className="text-[11px] font-mono text-rose-300 flex items-start gap-2 p-2 rounded-lg bg-rose-950/30 border border-rose-500/30">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{reportError} — click RETRY REPORT to attempt again.</span>
+                </div>
+              )}
 
               {/* AI Recommendation vs Human Decision */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">

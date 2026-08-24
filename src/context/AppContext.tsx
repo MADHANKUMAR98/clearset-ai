@@ -4,7 +4,8 @@ import type { DashboardStats } from '../services/types';
 import { settlementService } from '../services/settlementService';
 import { cortexService } from '../services/cortexService';
 import { INITIAL_CASES } from '../data/syntheticData';
-import { fetchHealth } from '../services/apiClient';
+import { fetchHealth, fetchSlackStatus, notifyCriticalException } from '../services/apiClient';
+import type { SlackStatusResponse } from '../services/types';
 import confetti from 'canvas-confetti';
 
 export type EvidenceTabType = 'trade' | 'settlement' | 'counterparty' | 'history' | 'policy';
@@ -43,6 +44,8 @@ interface AppContextType {
   lastDataRefreshAt: number | null;
   /** Re-query the service layer for fresh exceptions (Snowflake first, local fallback). */
   refreshData: () => Promise<void>;
+  /** Optional Slack notification channel status (null until first probe completes). */
+  slackStatus: SlackStatusResponse | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -66,6 +69,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Navbar uses its own fetchHealth() call; this one drives CopilotView and any other consumer.
   const [backendMode, setBackendMode] = useState<BackendMode>('checking');
 
+  // Optional Slack notification channel status — probed once on mount.
+  const [slackStatus, setSlackStatus] = useState<SlackStatusResponse | null>(null);
+
   // Freshness of the exception dataset
   const [lastDataRefreshAt, setLastDataRefreshAt] = useState<number | null>(null);
 
@@ -86,6 +92,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!cancelled) {
         setBackendMode(health.snowflake === true ? 'live' : 'local');
       }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Probe Slack integration status once on mount (feature-flagged server-side).
+  useEffect(() => {
+    let cancelled = false;
+    fetchSlackStatus(6000).then((status) => {
+      if (!cancelled) setSlackStatus(status);
     });
     return () => { cancelled = true; };
   }, []);
@@ -190,6 +205,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ex.tradeId === tradeId ? { ...ex, status: 'PENDING_APPROVAL' } : ex
           )
         );
+
+        // Optional Slack visibility for high-urgency approval alerts.
+        // Fire-and-forget: delivery failure must never affect the workflow.
+        if (slackStatus?.mode === 'ENABLED' && (targetEx.severity === 'CRITICAL' || targetEx.severity === 'HIGH')) {
+          void (async () => {
+            try {
+              const rec = await cortexService.generateRecommendation(targetEx.trade, targetEx.exceptionType);
+              await notifyCriticalException({
+                tradeId: targetEx.tradeId,
+                exceptionType: String(targetEx.exceptionType),
+                severity: targetEx.severity,
+                riskScore: targetEx.riskScore.totalScore,
+                tradeValue: targetEx.trade.tradeValue,
+                currency: targetEx.trade.currency,
+                counterpartyName: targetEx.trade.counterparty.name,
+                counterpartyId: targetEx.trade.counterparty.id,
+                rootCause: rec.rootCause.primary,
+                recommendedResolution: rec.primaryAction,
+                applicableSop: `${rec.applicablePolicyRef.docCode} §${rec.applicablePolicyRef.section} — ${rec.applicablePolicyRef.title}`,
+                provenance: backendMode === 'live' ? 'LIVE SNOWFLAKE' : 'LOCAL FALLBACK',
+                dataMode: backendMode === 'live' ? 'snowflake' : 'local',
+              });
+            } catch {
+              // Notification is best-effort by design.
+            }
+          })();
+        }
       }
     }, 650);
   };
@@ -342,6 +384,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         backendMode,
         lastDataRefreshAt,
         refreshData,
+        slackStatus,
       }}
     >
       {children}

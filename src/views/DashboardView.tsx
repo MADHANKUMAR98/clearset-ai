@@ -27,6 +27,7 @@ import {
   LabelList
 } from 'recharts';
 import { useApp } from '../context/AppContext';
+import { ImpactMetricsTile } from '../components/ImpactMetricsTile';
 import {
   ProvenanceTag,
   PanelHeader,
@@ -611,6 +612,9 @@ export const DashboardView: React.FC = () => {
           <ProvenanceTag kind={dataProvenance} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+          {/* Operational Impact — live Snowflake metrics (additive tile) */}
+          <ImpactMetricsTile />
 
           {/* Severity Distribution */}
           <div className="bg-[#0F172A] border border-slate-700/80 p-4 rounded-2xl space-y-3 shadow-md">
