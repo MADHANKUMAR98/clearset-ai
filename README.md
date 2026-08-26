@@ -14,7 +14,16 @@
 
 **🔴 LIVE IN PRODUCTION → [mafdxb-ziaihbo-fr43183.snowflakecomputing.app](https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app)** *(Snowflake SSO required)*
 
-**⏱️ Judges: start here → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)** — 5-minute evaluation script with honesty spot-checks.
+**⏱️ Judges: instant access**
+| Field | Value |
+|-------|-------|
+| **URL** | https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app |
+| **Username** | `CLEARSET_JUDGE` |
+| **Password** | `JudgeDemo26` |
+| **Expires** | 2026-09-29 (auto-disables) |
+| **Role** | Read-only — writes blocked at privilege level |
+
+**📋 Full evaluation script → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)**
 
 Image digest `sha256:fd6cfa69…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
 
