@@ -11,7 +11,7 @@
 spec:
   containers:
     - name: clearset-ai
-      image: ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+      image: ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
       resources:
         requests:
           cpu: "0.5"

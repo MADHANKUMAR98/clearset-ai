@@ -12,20 +12,20 @@
 
 ---
 
-**🔴 LIVE IN PRODUCTION → [mafdxb-ziaihbo-fr43183.snowflakecomputing.app](https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app)** *(Snowflake SSO required)*
+**🔴 LIVE IN PRODUCTION → [eafhmc-ebgexcw-ly21740.snowflakecomputing.app](https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app)** *(Snowflake SSO required)*
 
 **⏱️ Judges: instant access**
 | Field | Value |
 |-------|-------|
-| **URL** | https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app |
+| **URL** | https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app |
 | **Username** | `CLEARSET_JUDGE` |
 | **Password** | `JudgeDemo26` |
-| **Expires** | 2026-09-29 (auto-disables) |
+| **Expires** | 2026-10-31 (auto-disables) |
 | **Role** | Read-only — writes blocked at privilege level |
 
 **📋 Full evaluation script → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)**
 
-Image digest `sha256:fd6cfa69…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
+Image digest `sha256:d8484496…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
 
 </div>
 
@@ -370,16 +370,18 @@ Deployed to **Snowflake Park (SPCS)** — the app runs *inside* your Snowflake a
 
 ```bash
 # 1. Build (pre-built frontend + backend, node:22-alpine runtime)
-docker build -t ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
+docker build -t ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
 
 # 2. Push via Snowflake registry auth
-snow spcs image-registry login --connection fr43183
-docker push ziaihbo-fr43183.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
-# → digest sha256:fd6cfa690c789039311a519c183a33e80b81e2907868302cb968bb174b21baf1
+snow spcs image-registry login --connection clearset-prod
+docker push ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+# → digest sha256:d84844965c145dce7d47400f7e46e0961b827fcd7f535ce9bbacf84d6ff620ee
 
-# 3. Upgrade existing service (never create duplicates)
-snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
-  --spec-path service-spec.yaml --connection fr43183
+# 3. Create/Upgrade service
+snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
+  --spec-path service-spec.yaml \
+  --compute-pool CLEARSET_POOL \
+  --connection clearset-prod
 ```
 
 **Deployment verification record (2026-08-23):**

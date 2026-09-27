@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Backend API Server
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT:-EBGEXCW-LY21740}
+      - SNOWFLAKE_USER=${SNOWFLAKE_USER:-MADHANKUMAR98}
+      - SNOWFLAKE_PASSWORD=${SNOWFLAKE_PASSWORD}
+      - SNOWFLAKE_DATABASE=CLEARSET_DB
+      - SNOWFLAKE_SCHEMA=CLEARSET_SCHEMA
+      - SNOWFLAKE_WAREHOUSE=COMPUTE_WH
+      - SNOWFLAKE_ROLE=ACCOUNTADMIN
+      - SNOWFLAKE_PAT=${SNOWFLAKE_PAT}
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Development Server
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - NODE_ENV=development
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./package.json:/app/package.json
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0
+
+  # Redis for caching/sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  default:
+    name: clearset-network
+
+volumes:
+  redis_data:

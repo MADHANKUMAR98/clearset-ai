@@ -1,0 +1,275 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '22'
+  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+  SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+  SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
+
+jobs:
+  # ============================================================
+  # LINT & TYPECHECK
+  # ============================================================
+  lint-and-typecheck:
+    name: Lint & TypeCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd server && npm ci
+
+      - name: Run linter
+        run: npx oxlint .
+
+      - name: Type check
+        run: npx tsc -b --noEmit
+
+  # ============================================================
+  # UNIT TESTS
+  # ============================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd server && npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  # ============================================================
+  # INTEGRATION TESTS (requires Snowflake)
+  # ============================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd server && npm ci
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
+
+  # ============================================================
+  # BUILD
+  # ============================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd server && npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build backend
+        run: cd server && npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            server/dist/
+          retention-days: 7
+
+  # ============================================================
+  # DOCKER BUILD & PUSH
+  # ============================================================
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      REGISTRY: ${{ secrets.SNOWFLAKE_REGISTRY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Snowflake Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.SNOWFLAKE_REGISTRY }}
+          username: 0sessiontoken
+          password: ${{ secrets.SNOWFLAKE_REGISTRY_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.SNOWFLAKE_REGISTRY }}/clearset_db/clearset_schema/clearset_repo/clearset-ai
+          tags: |
+            type=ref,event=branch
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
+  # SPCS DEPLOYMENT
+  # ============================================================
+  deploy-spcs:
+    name: Deploy to SPCS
+    runs-on: ubuntu-latest
+    needs: [docker, integration-tests]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Snowflake CLI
+        uses: snowflakedb/snowflake-cli-action@v1
+        with:
+          version: latest
+
+      - name: Deploy to SPCS
+        run: |
+          snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
+            --spec-path service-spec.yaml \
+            --connection ${{ secrets.SNOWFLAKE_CONNECTION }}
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+
+  # ============================================================
+  # SMOKE TESTS
+  # ============================================================
+  smoke-test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-spcs]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      PRODUCTION_URL: https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app
+    steps:
+      - name: Wait for service readiness
+        run: sleep 60
+
+      - name: Health check
+        run: |
+          for i in {1..10}; do
+            if curl -sf ${{ env.PRODUCTION_URL }}/api/health | grep -q '"snowflake":true'; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for service... ($i/10)"
+            sleep 10
+          done
+          echo "❌ Health check failed"
+          exit 1
+
+      - name: API smoke tests
+        run: |
+          curl -sf ${{ env.PRODUCTION_URL }}/api/exceptions | jq '.success'
+          curl -sf ${{ env.PRODUCTION_URL }}/api/trades | jq '.success'
+          curl -sf ${{ env.PRODUCTION_URL }}/api/cases | jq '.success'
+          curl -sf ${{ env.PRODUCTION_URL }}/api/metrics | jq '.success'
+          curl -sf ${{ env.PRODUCTION_URL }}/api/slack/status | jq '.success'
+
+  # ============================================================
+  # NOTIFICATIONS
+  # ============================================================
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, unit-tests, integration-tests, build, docker, deploy-spcs, smoke-test]
+    if: always()
+    steps:
+      - name: Send notification
+        if: failure()
+        run: |
+          echo "❌ Pipeline failed"
+          # Add Slack/email notification here
+
+      - name: Success notification
+        if: success()
+        run: |
+          echo "✅ Pipeline succeeded"
+          # Add success notification here
+
+# ============================================================
+# CONCURRENCY CONTROL
+# ============================================================
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
