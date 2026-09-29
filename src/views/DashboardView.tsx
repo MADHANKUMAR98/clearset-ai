@@ -28,6 +28,9 @@ import {
 } from 'recharts';
 import { useApp } from '../context/AppContext';
 import { ImpactMetricsTile } from '../components/ImpactMetricsTile';
+import { PredictionPanel } from '../components/PredictionPanel';
+import { SettlementChainViz } from '../components/SettlementChainViz';
+import { CocoReplayPanel } from '../components/CocoReplayPanel';
 import {
   ProvenanceTag,
   PanelHeader,
@@ -615,6 +618,15 @@ export const DashboardView: React.FC = () => {
 
           {/* Operational Impact — live Snowflake metrics (additive tile) */}
           <ImpactMetricsTile />
+
+          {/* Predictive Failure Prevention - hidden unless VITE_PREDICTIVE_ENGINE=true */}
+          <PredictionPanel />
+
+          {/* Settlement Chain Trace - hidden unless VITE_SETTLEMENT_CHAIN_VIZ=true */}
+          <SettlementChainViz />
+
+          {/* CoCo CLI replay - hidden unless VITE_COCO_CLI_REPLAY=true */}
+          <CocoReplayPanel />
 
           {/* Severity Distribution */}
           <div className="bg-[#0F172A] border border-slate-700/80 p-4 rounded-2xl space-y-3 shadow-md">

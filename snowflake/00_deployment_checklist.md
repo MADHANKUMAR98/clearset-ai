@@ -3,25 +3,44 @@
 ## Overview
 This document specifies the exact, step-by-step procedure for deploying the **ClearSet AI** data foundation into a dedicated Snowflake AI Data Cloud trial account.
 
-You can execute either the **unified single script** ([`entire-schema.sql`](file:///e:/coco-cli/clearset-ai/snowflake/entire-schema.sql)) or the **modular scripts** ([`01_schema.sql`](file:///e:/coco-cli/clearset-ai/snowflake/01_schema.sql) through [`05_validation.sql`](file:///e:/coco-cli/clearset-ai/snowflake/05_validation.sql)) in order.
+You can execute either the **unified single script** ([`entire-schema.sql`](entire-schema.sql)) or the **modular scripts** ([`01_schema.sql`](01_schema.sql) through [`05_validation.sql`](05_validation.sql)) in order.
 
 ---
 
 ## 1. Execution Methods
 
 ### Option A: Unified One-Click Deployment (Recommended)
-Run [`snowflake/entire-schema.sql`](file:///e:/coco-cli/clearset-ai/snowflake/entire-schema.sql) in a single Snowflake worksheet. It executes Parts 1 through 5 sequentially.
+Run [`snowflake/entire-schema.sql`](entire-schema.sql) in a single Snowflake worksheet. It executes Parts 1 through 5 sequentially.
 
 ### Option B: Modular Execution Order
 Run the following SQL scripts in sequence inside a Snowflake Worksheet (or via SnowSQL / Python / VS Code Snowflake Extension):
 
 | Step | Script File | Purpose | Execution Mode |
 | :---: | :--- | :--- | :--- |
-| **1** | [`01_schema.sql`](file:///e:/coco-cli/clearset-ai/snowflake/01_schema.sql) | Creates `CLEARSET_DB`, `CLEARSET_SCHEMA`, and all 9 operational tables (including `POLICY_CHUNKS`). | Mandatory |
-| **2** | [`02_seeds.sql`](file:///e:/coco-cli/clearset-ai/snowflake/02_seeds.sql) | Seeds master counterparties, securities, active trades (including `TRD-92831`), SSIs, SWIFT audit events, exceptions (via `SELECT ... UNION ALL`), and historical playbooks. | Mandatory |
-| **3** | [`03_semantic_views.sql`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql) | Creates 8 enriched analytical views (`V_EXCEPTIONS_ENRICHED`, `V_CRITICAL_APPROACHING_CUTOFF`, `V_COUNTERPARTY_FAIL_STATS`, `V_POLICY_SEARCH`, `V_SETTLEMENT_EVENTS`, `V_TRADE_ENRICHED`, `V_HISTORICAL_CASES`, `V_SSI_STATUS`). | Mandatory |
-| **4** | [`04_cortex_search.sql`](file:///e:/coco-cli/clearset-ai/snowflake/04_cortex_search.sql) | Creates policy stage (`CLEARSET_POLICY_STAGE`) and populates 5 SOP policy chunks. | Mandatory (Cortex Search Service definition is documented for future milestone) |
-| **5** | [`05_validation.sql`](file:///e:/coco-cli/clearset-ai/snowflake/05_validation.sql) | Runs 12 comprehensive read-only validation queries to verify table schemas, row counts, TRD-92831 showcase facts, and all views. | Verification |
+| **1** | [`01_schema.sql`](01_schema.sql) | Creates `CLEARSET_DB`, `CLEARSET_SCHEMA`, and all 9 operational tables (including `POLICY_CHUNKS`). | Mandatory |
+| **2** | [`02_seeds.sql`](02_seeds.sql) | Seeds master counterparties, securities, active trades (including `TRD-92831`), SSIs, SWIFT audit events, exceptions (via `SELECT ... UNION ALL`), and historical playbooks. | Mandatory |
+| **3** | [`03_semantic_views.sql`](03_semantic_views.sql) | Creates 8 enriched analytical views (`V_EXCEPTIONS_ENRICHED`, `V_CRITICAL_APPROACHING_CUTOFF`, `V_COUNTERPARTY_FAIL_STATS`, `V_POLICY_SEARCH`, `V_SETTLEMENT_EVENTS`, `V_TRADE_ENRICHED`, `V_HISTORICAL_CASES`, `V_SSI_STATUS`). | Mandatory |
+| **4** | [`04_cortex_search.sql`](04_cortex_search.sql) | Creates policy stage (`CLEARSET_POLICY_STAGE`), loads SOP chunks, and creates the `POLICY_SEARCH_SVC` Cortex Search service. | Mandatory |
+| **5** | [`06_cortex_search_validation.sql`](06_cortex_search_validation.sql) | Smoke-tests retrieval against the live search service. | Verification |
+| **6** | [`07_semantic_model_CORRECTED.yaml`](07_semantic_model_CORRECTED.yaml) | Deploys the semantic view used by Cortex Analyst: upload to `CLEARSET_POLICY_STAGE`, then `CALL SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML(...)`. The base `07_semantic_model.yaml` is the earlier, narrower draft kept for comparison. | Mandatory |
+| **7** | [`08_resolution_cases.sql`](08_resolution_cases.sql) | Creates the `RESOLUTION_CASES` human-approval audit ledger. | Mandatory |
+| **8** | [`09_demo_data_expansion.sql`](09_demo_data_expansion.sql) | Expands to the 35-trade / 21-exception multi-scenario portfolio. Idempotent — safe to re-run. | Mandatory |
+| **9** | [`10_refresh_demo_dates.sql`](10_refresh_demo_dates.sql) | Re-anchors every non-protected trade's cutoff to "today" so the demo never goes stale. | Optional, re-runnable forever |
+| **10** | [`05_validation.sql`](05_validation.sql) | Runs 12 comprehensive read-only validation queries to verify table schemas, row counts, TRD-92831 showcase facts, and all views. | Verification |
+
+### Option C: Scripted Cutover (what this account actually used)
+
+For a from-scratch or migrated account, run the staged cutover instead of clicking through a worksheet — it is idempotent, resumable, and prints a no-go report instead of half-provisioning:
+
+```bash
+pwsh scripts/migrate/cutover.ps1 -Connection clearset-hack
+```
+
+Stages: connectivity → CoCo CLI preflight → provision (db/schema/roles/grants/pool) →
+DDL in dependency order → data load + repair → row-count verification. Data-only
+re-runs use `CLEARSET_CONNECTION=clearset-hack python scripts/migrate/migrate_all.py`.
+
+Post-deploy, the SPCS service itself is checked with [`scripts/test/test-spcs.py`](../scripts/test/test-spcs.py).
 
 ---
 

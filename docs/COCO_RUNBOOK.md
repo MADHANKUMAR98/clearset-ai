@@ -18,7 +18,13 @@ narrates, it never mutates anything.
    ```
    npm run server:start        # http://localhost:3001
    ```
-4. Snowflake connection configured (`fr43183`).
+4. Snowflake connection configured (`clearset-hack` → account `LHBBRSO-DZ87434`),
+   selected for CoCo and pinned for the app:
+   ```
+   cortex connections set clearset-hack
+   # ~/.snowflake/cortex/settings.json → sqlConnectionName = "clearset-hack"
+   ```
+5. CoCo entitlement active on that account (Snowflake-side; see Troubleshooting).
 
 ## Run an investigation for ANY trade
 
@@ -59,6 +65,19 @@ Every evidence line is labeled at runtime with its true provenance:
 - Approval happens exclusively in the ClearSet application (human-in-the-loop);
   RESOLUTION_CASES write-back and audit PDFs remain app-side.
 
+## In-app replay (feature-flagged)
+
+Every successful run is parsed by the wrapper and written to
+`public/coco-replay.json` (steps, provenance labels, deterministic score, root
+cause, recommendation, full transcript). With `VITE_COCO_CLI_REPLAY=true` the
+dashboard renders it as a step-by-step replay panel that also shows the exact
+re-run command — so judges see the investigation even without a live terminal.
+
+```
+# .env
+VITE_COCO_CLI_REPLAY=true
+```
+
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -66,3 +85,6 @@ Every evidence line is labeled at runtime with its true provenance:
 | `backend is not reachable` | Start `npm run server:start` first |
 | Tools blocked message from CoCo | Ensure wrapper used (it passes `--allowed Bash`) |
 | Output stops before Step 10 | Re-run; the prompt demands steps 8–10 in the final message |
+| `Cortex Code is not enabled or the usage limit has been reached` | Snowflake-side entitlement: standard trials ship with AI features off. Enable CoCo credits (Snowflake team), add a payment method in Snowsight > Billing, or use a CoCo CLI trial account — then re-run |
+| `Programmatic access token is expired` | Re-auth the connection: `cortex connections set clearset-hack` |
+| Replay panel shows "No recorded investigation yet" | Run a successful investigation first; the wrapper writes `public/coco-replay.json` automatically |

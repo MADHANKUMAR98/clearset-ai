@@ -136,3 +136,63 @@ export interface ImpactMetricsResponse {
 }
 
 type ApiModeString = 'snowflake' | 'local';
+
+// ============================================================================
+// PREDICTIVE FAILURE PREVENTION (feature-flagged: VITE_PREDICTIVE_ENGINE)
+// ============================================================================
+
+export type PredictionRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type PredictionActionPriority = 'IMMEDIATE' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface PredictionRiskDriver {
+  factor: string;
+  impact: number;
+  description: string;
+  currentValue: string;
+  threshold: string;
+}
+
+export interface PredictionRecommendedAction {
+  action: string;
+  priority: PredictionActionPriority;
+  description: string;
+  estimatedImpact: string;
+  automated: boolean;
+}
+
+export interface PredictionItem {
+  tradeId: string;
+  failureProbability: number;
+  riskLevel: PredictionRiskLevel;
+  riskDrivers: PredictionRiskDriver[];
+  recommendedActions: PredictionRecommendedAction[];
+  generatedAt: string;
+  cpId?: string;
+  cpFailRate?: number;
+  tradeValue?: number;
+  instructionStatus?: string;
+  daysToCutoff?: number;
+  assetClass?: string;
+  depository?: string;
+  settlementType?: string;
+  csdrDailyExposure?: number;
+}
+
+export interface PredictionModelMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  trainedOn: string;
+  sampleSize: number;
+}
+
+export interface PredictionsResponse {
+  success: boolean;
+  mode?: ApiModeString;
+  generatedAt?: string;
+  modelMetrics?: PredictionModelMetrics;
+  data: PredictionItem[] | null;
+  error?: string;
+}

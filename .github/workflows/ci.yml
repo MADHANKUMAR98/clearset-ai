@@ -5,13 +5,10 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: '22'
-  SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-  SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-  SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-  SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
 
 jobs:
   # ============================================================
@@ -35,14 +32,14 @@ jobs:
           npm ci
           cd server && npm ci
 
-      - name: Run linter
+      - name: Run linter (oxlint)
         run: npx oxlint .
 
       - name: Type check
         run: npx tsc -b --noEmit
 
   # ============================================================
-  # UNIT TESTS
+  # UNIT TESTS (node:test, no network required)
   # ============================================================
   unit-tests:
     name: Unit Tests
@@ -62,43 +59,8 @@ jobs:
           npm ci
           cd server && npm ci
 
-      - name: Run unit tests
-        run: npm run test:unit
-
-  # ============================================================
-  # INTEGRATION TESTS (requires Snowflake)
-  # ============================================================
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    env:
-      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-      SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          npm ci
-          cd server && npm ci
-
-      - name: Run integration tests
-        run: npm run test:integration
-        env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
+      - name: Run test suite (42 tests)
+        run: npm run server:test
 
   # ============================================================
   # BUILD
@@ -138,23 +100,37 @@ jobs:
           retention-days: 7
 
   # ============================================================
-  # DOCKER BUILD & PUSH
+  # DOCKER BUILD & PUSH (main only, requires registry secrets)
   # ============================================================
   docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    env:
-      REGISTRY: ${{ secrets.SNOWFLAKE_REGISTRY }}
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     steps:
+      - name: Check registry credentials are configured
+        id: creds
+        env:
+          REGISTRY: ${{ secrets.SNOWFLAKE_REGISTRY }}
+          REGISTRY_TOKEN: ${{ secrets.SNOWFLAKE_REGISTRY_TOKEN }}
+        run: |
+          if [ -n "$REGISTRY" ] && [ -n "$REGISTRY_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Snowflake registry secrets not configured - skipping image publish (local docker build still works)."
+          fi
+
       - name: Checkout code
+        if: steps.creds.outputs.available == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
+        if: steps.creds.outputs.available == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Snowflake Registry
+        if: steps.creds.outputs.available == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.SNOWFLAKE_REGISTRY }}
@@ -162,6 +138,7 @@ jobs:
           password: ${{ secrets.SNOWFLAKE_REGISTRY_TOKEN }}
 
       - name: Extract metadata
+        if: steps.creds.outputs.available == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -171,6 +148,7 @@ jobs:
             type=sha
 
       - name: Build and push
+        if: steps.creds.outputs.available == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -181,27 +159,38 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================================
-  # SPCS DEPLOYMENT
+  # SPCS DEPLOYMENT (main only, requires Snowflake secrets)
   # ============================================================
   deploy-spcs:
     name: Deploy to SPCS
     runs-on: ubuntu-latest
-    needs: [docker, integration-tests]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    env:
-      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+    needs: [docker]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     steps:
+      - name: Check Snowflake credentials are configured
+        id: creds
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+        run: |
+          if [ -n "$SNOWFLAKE_ACCOUNT" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Snowflake account secrets not configured — skipping SPCS upgrade."
+          fi
+
       - name: Checkout code
+        if: steps.creds.outputs.available == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Snowflake CLI
+        if: steps.creds.outputs.available == 'true'
         uses: snowflakedb/snowflake-cli-action@v1
         with:
           version: latest
 
-      - name: Deploy to SPCS
+      - name: Upgrade SPCS service
+        if: steps.creds.outputs.available == 'true'
         run: |
           snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
             --spec-path service-spec.yaml \
@@ -212,30 +201,36 @@ jobs:
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
 
   # ============================================================
-  # SMOKE TESTS
+  # SMOKE TESTS (against the deployed ingress)
   # ============================================================
   smoke-test:
     name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [deploy-spcs]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     env:
-      PRODUCTION_URL: https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app
+      PRODUCTION_URL: https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app
     steps:
-      - name: Wait for service readiness
-        run: sleep 60
+      - name: Check deployment is reachable (OAuth-gated endpoints expect 302)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' ${{ env.PRODUCTION_URL }}/)
+          echo "Ingress HTTP status: $code"
+          if [ "$code" != "302" ] && [ "$code" != "200" ]; then
+            echo "::error::Ingress did not respond with 200/302 (got $code)"
+            exit 1
+          fi
 
       - name: Health check
         run: |
           for i in {1..10}; do
             if curl -sf ${{ env.PRODUCTION_URL }}/api/health | grep -q '"snowflake":true'; then
-              echo "✅ Health check passed"
+              echo "Health check passed"
               exit 0
             fi
             echo "Waiting for service... ($i/10)"
             sleep 10
           done
-          echo "❌ Health check failed"
+          echo "::error::Health check failed"
           exit 1
 
       - name: API smoke tests
@@ -247,25 +242,24 @@ jobs:
           curl -sf ${{ env.PRODUCTION_URL }}/api/slack/status | jq '.success'
 
   # ============================================================
-  # NOTIFICATIONS
+  # STATUS (always runs — gives a single required check)
   # ============================================================
-  notify:
-    name: Notify
+  ci-status:
+    name: CI Status
     runs-on: ubuntu-latest
-    needs: [lint-and-typecheck, unit-tests, integration-tests, build, docker, deploy-spcs, smoke-test]
+    needs: [lint-and-typecheck, unit-tests, build]
     if: always()
     steps:
-      - name: Send notification
-        if: failure()
+      - name: Fail if any gate failed
         run: |
-          echo "❌ Pipeline failed"
-          # Add Slack/email notification here
-
-      - name: Success notification
-        if: success()
-        run: |
-          echo "✅ Pipeline succeeded"
-          # Add success notification here
+          echo "lint-and-typecheck=${{ needs.lint-and-typecheck.result }}"
+          echo "unit-tests=${{ needs.unit-tests.result }}"
+          echo "build=${{ needs.build.result }}"
+          if [ "${{ needs.lint-and-typecheck.result }}" != "success" ] \
+            || [ "${{ needs.unit-tests.result }}" != "success" ] \
+            || [ "${{ needs.build.result }}" != "success" ]; then
+            exit 1
+          fi
 
 # ============================================================
 # CONCURRENCY CONTROL

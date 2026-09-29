@@ -195,7 +195,7 @@ ClearSet AI is a **Snowflake-native, domain-specific AI copilot** for capital ma
 | Image Hygiene | Build-time scan: no `.env*`, tokens, secrets |
 | Parameterized SQL | All queries use `?` bindings; no string interpolation |
 | PAT Policy | `CLEARSET_PAT_POLICY` network rules at user level |
-| Least Privilege | Migration path documented in `LEAST_PRIVILEGE_ROLE.md` |
+| Least Privilege | Migration path documented in `docs/security/LEAST_PRIVILEGE_ROLE.md` |
 | Audit Trail | Human approvals persisted to `RESOLUTION_CASES` |
 
 ### 8. Deployment Architecture
@@ -228,7 +228,7 @@ ClearSet AI is a **Snowflake-native, domain-specific AI copilot** for capital ma
 |-------------|---------|-----|
 | Local Dev | Development | `http://localhost:5173` + `http://localhost:3001` |
 | Docker Local | Integration | `http://localhost:5173` + `http://localhost:3001` |
-| SPCS Production | Live Demo | `https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app` |
+| SPCS Production | Live Demo | `https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app` |
 
 ### 9. Data Flow Examples
 

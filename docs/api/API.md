@@ -5,7 +5,7 @@
 | Environment | URL |
 |-------------|-----|
 | Local | `http://localhost:3001/api` |
-| Production | `https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app/api` |
+| Production | `https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app/api` |
 
 ## Authentication
 
@@ -26,7 +26,7 @@ Check service health and Snowflake connectivity.
   "mode": "snowflake",
   "snowflake": true,
   "session": {
-    "ACCOUNT": "EBGEXCW-LY21740",
+    "ACCOUNT": "LHBBRSO-DZ87434",
     "USER": "MADHANKUMAR98",
     "ROLE": "ACCOUNTADMIN",
     "WAREHOUSE": "COMPUTE_WH",

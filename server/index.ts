@@ -20,6 +20,7 @@ import { getSlackStatusSummary, notifyCriticalException } from './services/slack
 import type { CriticalExceptionNotification, SlackProvenance } from './services/slackService.js';
 import { generateCaseAuditReport, isValidCaseId, ReportError } from './services/auditReportService.js';
 import { fetchImpactMetrics } from './services/metricsService.js';
+import { getPredictions, getMetrics } from './routes/predict.js';
 
 const app = express();
 // Production (Snowflake App Runtime) expects port 8080.
@@ -971,6 +972,33 @@ app.get('/api/metrics', async (_req: Request, res: Response) => {
       error: err?.message || 'Failed to compute impact metrics',
     });
   }
+});
+
+// ============================================================================
+// GET /api/predict — Predictive Settlement Failure Prevention (feature-flagged)
+// Returns 404 unless PREDICTIVE_ENGINE_ENABLED=true, so the deployed service
+// and all existing routes behave exactly as before when the flag is off.
+// ============================================================================
+app.get('/api/predict', (req: Request, res: Response) => {
+  if (process.env.PREDICTIVE_ENGINE_ENABLED !== 'true') {
+    return res.status(404).json({
+      success: false,
+      data: null,
+      error: 'Predictive engine disabled (set PREDICTIVE_ENGINE_ENABLED=true)',
+    });
+  }
+  return getPredictions(req, res);
+});
+
+app.get('/api/predict/metrics', (_req: Request, res: Response) => {
+  if (process.env.PREDICTIVE_ENGINE_ENABLED !== 'true') {
+    return res.status(404).json({
+      success: false,
+      data: null,
+      error: 'Predictive engine disabled (set PREDICTIVE_ENGINE_ENABLED=true)',
+    });
+  }
+  return getMetrics(_req, res);
 });
 
 // ============================================================================

@@ -1,6 +1,6 @@
 # Judge Quickstart — ClearSet AI
 
-**Time budget: 5 minutes.** Everything below is verified working as of 2026-08-24.
+**Time budget: 5 minutes.** Everything below is verified working as of 2026-09-29.
 
 ---
 
@@ -16,9 +16,9 @@ The design rule that governs everything: **every number wears its provenance** (
 
 | Path | How | Notes |
 |------|-----|-------|
-| **Production (SPCS)** | https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app | Two supported login options below |
-| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires 2026-09-29 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level |
-| **Local run** | See README "Quickstart" — backend :3001 + Vite :5173 | Same code that's deployed (image digest `sha256:fd6cfa69…`); runs against your own Snowflake trial account |
+| **Production (SPCS)** | https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app | Two supported login options below |
+| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires ≈ 2026-11-03 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level |
+| **Local run** | See README "Quickstart" — backend :3001 + Vite :5173 | Same code that's deployed (image digest `sha256:c0956eba…`); runs against your own Snowflake trial account |
 
 **Why there is no public guest mode:** the app is OAuth-gated inside a Snowflake account by design — a settlement copilot anyone can open would be a compliance failure. Judge accounts are provisioned read-only and time-boxed instead.
 
@@ -26,7 +26,7 @@ The design rule that governs everything: **every number wears its provenance** (
 
 ## 2 · The 5-minute evaluation script
 
-1. **Dashboard** — note the provenance tags on every metric card. Find the **Operational Impact** tile: live open-fail exposure, human-approval count/turnaround from `RESOLUTION_CASES`, and an honestly-labeled CSDR accrual estimate.
+1. **Dashboard** — note the provenance tags on every metric card. Find the **Operational Impact** tile: live open-fail exposure, human-approval count/turnaround from `RESOLUTION_CASES`, and an honestly-labeled CSDR accrual estimate. With the demo flags on, the same page also shows **Predictive Failure Prevention** (per-exception failure probability + recommended actions), **Settlement Chain Trace** (hop-by-hop SWIFT/depository view with the cutoff clock), and the **CoCo CLI Replay** of the recorded investigation.
 2. **Exceptions queue** — open **TRD-92831** ($2.4M AAPL, Missing Instruction, risk 91). Click *"Why?"* on the risk score — you get the exact deterministic math, not a vibe.
 3. **Investigate** — walk the 10-step procedural workflow. Watch each step cite its source: trade master data, depository gateway, SSI directory, 30-day counterparty failure history, SOP paragraphs via **Cortex Search**.
 4. **Copilot** — paste:
@@ -35,14 +35,14 @@ The design rule that governs everything: **every number wears its provenance** (
    instruction status, risk score, and exception type.
    ```
    ($8.1M UST, Cash Discrepancy, 89.) Answers come from the governed semantic model via **Cortex Analyst** — or are declined, never invented.
-5. **Approve** — approve the recommendation. Dispatch stays locked until you click. The case lands in the **Cases ledger**.
+5. **Approve** — approve the recommendation. Dispatch stays locked until you click. The case lands in the **Cases ledger**. Before approving, expand a prediction and hit **Draft prevention MT599**: you get the exact SWIFT free-format draft, watermarked *DRAFT — AWAITING HUMAN APPROVAL*, and nothing is transmitted.
 6. **Audit PDF** — on any approved case, hit **GENERATE AUDIT REPORT**: evidence-grade PDF with factor math, approval identity/timestamps, SWIFT event history, and SOP excerpts retrieved fresh at generation time.
 7. **Real CoCo CLI agent** *(terminal)*:
    ```bash
    npm run coco:investigate -- TRD-92831
    ```
    This launches the actual Cortex Code CLI (`cortex exec`) driving a registered skill (`cortex skill list` shows `investigate-settlement-exception`). The agent discovers `snowsql` itself, queries the live tables itself, and ends with `AWAITING ANALYST AUTHORISATION`. Full transcript: [`COCO_RUNBOOK.md`](COCO_RUNBOOK.md).
-8. **Tests** *(optional, 10s)*: `npm run server:test` → **37 passing**, zero network required.
+8. **Tests** *(optional, 10s)*: `npm run server:test` → **42 passing**, zero network required.
 
 ---
 
@@ -51,6 +51,7 @@ The design rule that governs everything: **every number wears its provenance** (
 - Ask the Copilot something **not in the data** — watch it decline instead of hallucinating.
 - Stop Snowflake / break credentials locally — the UI degrades to clearly-labeled `LOCAL FALLBACK`, never fake-live data.
 - Look at the impact tile with the backend down — it renders `DATA NOT AVAILABLE`, not zeros dressed up as truth.
+- Flip any feature flag off in `.env` — the panel disappears and its API route 404s. Rollback is a flag, not a redeploy.
 
 ---
 

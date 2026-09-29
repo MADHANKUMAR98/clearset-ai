@@ -6,10 +6,10 @@ import json
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Connect to Snowflake
-conn = snowflake.connector.connect(connection_name='fr43183')
+conn = snowflake.connector.connect(connection_name='clearset-hack')
 session_token = conn._rest._token
 
-base_url = "https://mafdxb-ziaihbo-fr43183.snowflakecomputing.app"
+base_url = "https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app"
 headers = {
     "Authorization": f"Snowflake Token=\"{session_token}\""
 }

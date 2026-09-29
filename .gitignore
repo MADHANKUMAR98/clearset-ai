@@ -68,6 +68,17 @@ tmp/
 *.pfx
 *.jks
 
-# Temporary migration files
-migrate/
+# Temporary migration scratch (root only — scripts/migrate/ IS tracked)
+/migrate/
 *.sql.tmp
+
+# Python
+__pycache__/
+*.pyc
+
+# Ad-hoc shell/scratch artifacts (never commit these)
+tmp_*.json
+tmp_*.js
+_*.json
+_*.js
+snowflake.log

@@ -1,7 +1,7 @@
 # ClearSet AI — Makefile for Common Operations
 # Usage: make <target>
 
-.PHONY: help install dev build test lint clean deploy deploy-local docker-build docker-push deploy-spcs migrate smoke-test
+.PHONY: help install dev build test test-server lint typecheck clean verify deploy-local docker-build docker-push deploy-spcs migrate seed smoke-test
 
 # Default target
 help:
@@ -20,12 +20,11 @@ help:
 	@echo "  make docker-build     Build Docker image"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test             Run all tests (unit + integration)"
-	@echo "  make test-unit        Run unit tests only"
-	@echo "  make test-integration Run integration tests only"
-	@echo "  make test-e2e         Run end-to-end tests"
+	@echo "  make test             Run backend test suite (42 tests, node:test)"
+	@echo "  make test-server      Alias of make test"
 	@echo "  make lint             Run linter (oxlint)"
 	@echo "  make typecheck        Run TypeScript type checking"
+	@echo "  make verify           lint + typecheck + test (full gate)"
 	@echo ""
 	@echo "Database/Migrations:"
 	@echo "  make migrate          Run all SQL migrations on Snowflake"
@@ -72,43 +71,34 @@ build-backend:
 
 # Docker
 docker-build:
-	docker build -t ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
+	docker build -t lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
 
 docker-push:
-	snow spcs image-registry login --connection clearset-prod
-	docker push ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+	snow spcs image-registry login --connection clearset-hack
+	docker push lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
 
 # Snowflake SPCS Deployment
 deploy-spcs:
 	snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 		--spec-path service-spec.yaml \
 		--compute-pool CLEARSET_POOL \
-		--connection clearset-prod
+		--connection clearset-hack
 
 deploy-spcs-upgrade:
 	snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 		--spec-path service-spec.yaml \
-		--connection clearset-prod
+		--connection clearset-hack
 
 # Local deployment with docker-compose
 deploy-local:
 	docker-compose -f docker-compose.yml up -d
 
-# Testing
+# Testing (backend suite: server/test/*.test.mjs)
 test:
-	npm run test
-
-test-unit:
-	npm run test:unit
-
-test-integration:
-	npm run test:integration
-
-test-e2e:
-	npm run test:e2e
+	npm run server:test
 
 test-server:
-	cd server && npm run test
+	npm run server:test
 
 # Linting & Type Checking
 lint:
@@ -130,20 +120,20 @@ verify: lint typecheck test
 
 # Database/Migrations
 migrate:
-	python migrate_all.py
+	python scripts/migrate/migrate_all.py
 
 migrate-refresh:
-	snow sql -f "snowflake/10_refresh_demo_dates.sql" --connection clearset-prod
+	snow sql -f "snowflake/10_refresh_demo_dates.sql" --connection clearset-hack
 
 seed:
-	python migrate_all.py
+	python scripts/migrate/migrate_all.py
 
 # Snowflake operations
 snow-test:
-	snow sql -q "SELECT CURRENT_ACCOUNT(), CURRENT_USER(), CURRENT_ROLE()" --connection clearset-prod
+	snow sql -q "SELECT CURRENT_ACCOUNT(), CURRENT_USER(), CURRENT_ROLE()" --connection clearset-hack
 
 snow-shell:
-	snow sql --connection clearset-prod
+	snow sql --connection clearset-hack
 
 # Local development with docker-compose
 up:
@@ -165,7 +155,7 @@ health:
 	curl -s http://localhost:3001/api/health | jq .
 
 health-prod:
-	curl -s https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app/api/health | jq .
+	curl -s https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app/api/health | jq .
 
 # CoCo CLI investigation
 coco-investigate:

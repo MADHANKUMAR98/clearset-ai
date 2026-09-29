@@ -1,1 +1,0 @@
-fetch('http://localhost:3001/api/cortex/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'missing settlement instruction expedited SSI repair close to cutoff',limit:3})}).then(r= 

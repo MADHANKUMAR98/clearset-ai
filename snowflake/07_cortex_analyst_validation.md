@@ -10,17 +10,17 @@ The semantic model translates natural-language queries from post-trade operation
 
 ## 1. Semantic Model Structure
 
-The semantic model is formally codified in [`snowflake/07_semantic_model.yaml`](file:///e:/coco-cli/clearset-ai/snowflake/07_semantic_model.yaml).
+The semantic model is formally codified in [`snowflake/07_semantic_model.yaml`](07_semantic_model.yaml).
 
 ### Logical Tables & Underlying Snowflake Objects
 
 | Logical Table | Underlying Snowflake Object | Business Purpose |
 | :--- | :--- | :--- |
-| **`exceptions_enriched`** | [`V_EXCEPTIONS_ENRICHED`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L9) | Main operational triage queue linking exceptions to trade economics, securities, counterparties, SSIs, and cutoff deadlines. |
-| **`counterparties`** | [`COUNTERPARTIES`](file:///e:/coco-cli/clearset-ai/snowflake/01_schema.sql#L13) | Master directory of trading firms, credit ratings, 30-day failure counts, historical fail rates, and escalation contacts. |
-| **`settlement_events`** | [`V_SETTLEMENT_EVENTS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L92) | Chronological audit trail of SWIFT messages (MT541, MT548, MT599, ISO 20022) and depository events. |
-| **`historical_cases`** | [`V_HISTORICAL_CASES`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L145) | Institutional playbook memory containing prior root causes, applied SOP rules, resolution steps, and CSDR penalties avoided. |
-| **`settlement_instructions`** | [`V_SSI_STATUS`](file:///e:/coco-cli/clearset-ai/snowflake/03_semantic_views.sql#L167) | Standing Settlement Instructions (SSI), depository participant IDs, safekeeping accounts, and mismatch details. |
+| **`exceptions_enriched`** | [`V_EXCEPTIONS_ENRICHED`](03_semantic_views.sql#L9) | Main operational triage queue linking exceptions to trade economics, securities, counterparties, SSIs, and cutoff deadlines. |
+| **`counterparties`** | [`COUNTERPARTIES`](01_schema.sql#L13) | Master directory of trading firms, credit ratings, 30-day failure counts, historical fail rates, and escalation contacts. |
+| **`settlement_events`** | [`V_SETTLEMENT_EVENTS`](03_semantic_views.sql#L92) | Chronological audit trail of SWIFT messages (MT541, MT548, MT599, ISO 20022) and depository events. |
+| **`historical_cases`** | [`V_HISTORICAL_CASES`](03_semantic_views.sql#L145) | Institutional playbook memory containing prior root causes, applied SOP rules, resolution steps, and CSDR penalties avoided. |
+| **`settlement_instructions`** | [`V_SSI_STATUS`](03_semantic_views.sql#L167) | Standing Settlement Instructions (SSI), depository participant IDs, safekeeping accounts, and mismatch details. |
 
 ---
 

@@ -23,7 +23,7 @@ ClearSet AI deploys to **Snowflake Park Container Services (SPCS)** for producti
 │                                    ▼         ▼                 │
 │                              ┌─────────────────────┐           │
 │                              │  SNOWFLAKE REGISTRY │           │
-│                              │  ebgexcw-ly21740... │           │
+│                              │  lhbbrso-dz87434... │           │
 │                              └─────────────────────┘           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -34,7 +34,7 @@ ClearSet AI deploys to **Snowflake Park Container Services (SPCS)** for producti
 - Snowflake account with SPCS enabled
 - `snow` CLI installed and configured
 - Docker installed
-- `snow` connection configured: `clearset-prod`
+- `snow` connection configured: `clearset-hack`
 
 ## Build & Push
 
@@ -46,7 +46,7 @@ make build
 make docker-build
 
 # 3. Login to Snowflake registry
-snow spcs image-registry login --connection clearset-prod
+snow spcs image-registry login --connection clearset-hack
 
 # 4. Push image
 make docker-push
@@ -58,16 +58,16 @@ make docker-push
 
 ```bash
 # Create compute pool (one-time)
-snow sql -q "CREATE COMPUTE POOL CLEARSET_POOL MIN_NODES=1 MAX_NODES=1 INSTANCE_FAMILY=CPU_X64_S AUTO_SUSPEND_SECS=300 AUTO_RESUME=TRUE" --connection clearset-prod
+snow sql -q "CREATE COMPUTE POOL CLEARSET_POOL MIN_NODES=1 MAX_NODES=1 INSTANCE_FAMILY=CPU_X64_S AUTO_SUSPEND_SECS=300 AUTO_RESUME=TRUE" --connection clearset-hack
 
 # Wait for pool to be ACTIVE/IDLE
-snow sql -q "DESCRIBE COMPUTE POOL CLEARSET_POOL" --connection clearset-prod
+snow sql -q "DESCRIBE COMPUTE POOL CLEARSET_POOL" --connection clearset-hack
 
 # Create service
 snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
   --spec-path service-spec.yaml \
   --compute-pool CLEARSET_POOL \
-  --connection clearset-prod
+  --connection clearset-hack
 ```
 
 ### Subsequent Deployments (Upgrade)
@@ -75,7 +75,7 @@ snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 ```bash
 snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
   --spec-path service-spec.yaml \
-  --connection clearset-prod
+  --connection clearset-hack
 ```
 
 ## Verification
@@ -83,7 +83,7 @@ snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 ### Check Service Status
 
 ```bash
-snow spcs service describe CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-prod
+snow spcs service describe CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack
 ```
 
 Look for:
@@ -130,16 +130,16 @@ npm run coco:investigate -- TRD-92831
 ### Judge Credentials
 | Field | Value |
 |-------|-------|
-| URL | `https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app` |
+| URL | `https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app` |
 | Username | `CLEARSET_JUDGE` |
 | Password | `JudgeDemo26` |
-| Expires | 2026-10-31 |
+| Expires | ≈ 2026-11-03 (time-boxed, auto-disables) |
 | Role | Read-only |
 
 ### Grant Access (After Deployment)
 
 ```bash
-snow sql -q "GRANT SERVICE ROLE CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI!ALL_ENDPOINTS_USAGE TO ROLE CLEARSET_JUDGE_ROLE;" --connection clearset-prod
+snow sql -q "GRANT SERVICE ROLE CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI!ALL_ENDPOINTS_USAGE TO ROLE CLEARSET_JUDGE_ROLE;" --connection clearset-hack
 ```
 
 ## Local Development
@@ -191,6 +191,7 @@ Key configuration points:
 | `SNOWFLAKE_SCHEMA` | Spec | CLEARSET_SCHEMA |
 | `SNOWFLAKE_WAREHOUSE` | Spec | COMPUTE_WH |
 | `SNOWFLAKE_ROLE` | Spec | ACCOUNTADMIN |
+| `PREDICTIVE_ENGINE_ENABLED` | Spec | `"true"` — enables `/api/predict`; `"false"` (or delete the line + upgrade) = 404 and the panel disappears |
 | `SNOWFLAKE_HOST` | SPCS Runtime | Auto-injected |
 | `SNOWFLAKE_ACCOUNT` | SPCS Runtime | Auto-injected |
 | OAuth Token | SPCS Runtime | `/snowflake/session/token` |
@@ -200,19 +201,19 @@ Key configuration points:
 ### Service Stuck in PENDING
 ```bash
 # Check compute pool status
-snow sql -q "DESCRIBE COMPUTE POOL CLEARSET_POOL" --connection clearset-prod
+snow sql -q "DESCRIBE COMPUTE POOL CLEARSET_POOL" --connection clearset-hack
 
 # Check service logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-prod
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack
 ```
 
 ### Image Pull Errors
 ```bash
 # Re-login to registry
-snow spcs image-registry login --connection clearset-prod
+snow spcs image-registry login --connection clearset-hack
 
 # Verify image exists
-snow sql -q "SHOW IMAGES IN IMAGE REPOSITORY CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_REPO" --connection clearset-prod
+snow sql -q "SHOW IMAGES IN IMAGE REPOSITORY CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_REPO" --connection clearset-hack
 ```
 
 ### OAuth Issues
@@ -223,7 +224,7 @@ snow sql -q "SHOW IMAGES IN IMAGE REPOSITORY CLEARSET_DB.CLEARSET_SCHEMA.CLEARSE
 ### Compute Pool Not Ready
 ```bash
 # Check pool state
-snow sql -q "SHOW COMPUTE POOLS LIKE 'CLEARSET_POOL'" --connection clearset-prod
+snow sql -q "SHOW COMPUTE POOLS LIKE 'CLEARSET_POOL'" --connection clearset-hack
 
 # Wait for ACTIVE/IDLE state before deploying service
 ```
@@ -234,7 +235,7 @@ snow sql -q "SHOW COMPUTE POOLS LIKE 'CLEARSET_POOL'" --connection clearset-prod
 # If new deployment has issues, rollback by re-deploying previous image
 snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
   --spec-path service-spec.yaml \
-  --connection clearset-prod
+  --connection clearset-hack
 
 # Or manually specify previous image digest in service-spec.yaml
 ```
@@ -260,8 +261,8 @@ snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 ### Logs
 ```bash
 # View service logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-prod
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack
 
 # Follow logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-prod --follow
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack --follow
 ```

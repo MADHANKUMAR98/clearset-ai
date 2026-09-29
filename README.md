@@ -10,22 +10,24 @@
 
 `React 19` · `TypeScript` · `Express` · `Snowflake Cortex` · `SPCS Production`
 
+![tests](https://img.shields.io/badge/tests-42%20passing-brightgreen) ![lint](https://img.shields.io/badge/lint-oxlint%200%20errors-blue) ![license](https://img.shields.io/badge/license-MIT-blue) ![node](https://img.shields.io/badge/node-%E2%89%A520-green) ![Snowflake](https://img.shields.io/badge/Snowflake-CoCo%20Hackathon%202026-red)
+
 ---
 
-**🔴 LIVE IN PRODUCTION → [eafhmc-ebgexcw-ly21740.snowflakecomputing.app](https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app)** *(Snowflake SSO required)*
+**🔴 LIVE IN PRODUCTION → [eabwoc-lhbbrso-dz87434.snowflakecomputing.app](https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app)** *(Snowflake SSO required)*
 
 **⏱️ Judges: instant access**
 | Field | Value |
 |-------|-------|
-| **URL** | https://eafhmc-ebgexcw-ly21740.snowflakecomputing.app |
+| **URL** | https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app |
 | **Username** | `CLEARSET_JUDGE` |
 | **Password** | `JudgeDemo26` |
-| **Expires** | 2026-10-31 (auto-disables) |
+| **Expires** | ≈ **2026-11-03** (time-boxed, auto-disables itself) |
 | **Role** | Read-only — writes blocked at privilege level |
 
 **📋 Full evaluation script → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)**
 
-Image digest `sha256:d8484496…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
+Image digest `sha256:c0956eba…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
 
 </div>
 
@@ -183,6 +185,25 @@ Two protected production records you'll see throughout the app:
 | **11. Audit PDF Reports** | Evidence-grade report per approved case; deterministic + Cortex evidence | ✅ |
 | **12. CoCo CLI Integration** | Genuine `cortex exec` investigations via registered skill, live-verified | ✅ |
 | **13. Impact Metrics** | Live exposure & approval-throughput metrics with honest estimates | ✅ |
+| **14. Predictive Failure Prevention** | Per-exception failure probability, risk drivers, recommended actions, live model metrics | ✅ |
+| **15. Settlement Chain Trace** | Hop-by-hop SWIFT/depository visualiser with inter-hop latency + cutoff clock | ✅ |
+| **16. CoCo Replay & Prevention Draft** | In-app replay of the recorded CoCo investigation + SWIFT MT599 draft behind human approval | ✅ |
+
+### 🎛️ Feature Flags (safe rollout → zero-touch rollback)
+
+Each wow feature ships **behind a flag that defaults to off**, so the core
+product never changes shape: the API route returns `404` and the panel renders
+nothing. Flipping the flag back *is* the rollback — no schema change, no
+service-spec change, no redeploy.
+
+| Frontend flag | Backend guard | What it turns on |
+|---|---|---|
+| `VITE_PREDICTIVE_ENGINE` | `PREDICTIVE_ENGINE_ENABLED` | `/api/predict` + Predictive Failure Prevention panel |
+| `VITE_SETTLEMENT_CHAIN_VIZ` | *(reuses existing events API)* | Settlement Chain Trace panel |
+| `VITE_COCO_CLI_REPLAY` | *(static artefact)* | CoCo CLI Investigation Replay panel |
+
+Documented in `.env.example` and `server/.env.example`. Current local demo
+settings live in `.env` (git-ignored).
 
 ---
 
@@ -238,12 +259,15 @@ clearset-ai/
 ├── vite.config.ts             # Vite config with /api proxy to backend :3001
 ├── index.html                 # App shell
 ├── service-spec.yaml          # SPCS service specification (deployed)
-├── LEAST_PRIVILEGE_ROLE.md    # Snowflake role hardening guide
+├── docker-compose.yml         # Local containerised stack (backend + frontend)
+├── Dockerfile                 # Multi-stage production image (pre-built SPA)
+├── .github/workflows/ci.yml   # CI gate: lint → typecheck → 42 tests → build
 ├── server/                    # Node.js + TypeScript Backend (Express)
-│   ├── index.ts               # All API routes + Cortex Analyst auth
+│   ├── index.ts               # Server entry: route wiring + Cortex Analyst auth
+│   ├── routes/                # predict.ts — flag-guarded /api/predict & /api/metrics
 │   ├── snowflakeClient.ts     # Dual-auth SDK client (password local / OAuth SPCS)
-│   ├── services/              # slackService · auditReportService · metricsService
-│   ├── test/                  # 37 node:test unit tests (no network required)
+│   ├── services/              # slack · auditReport · metrics · predictiveEngine
+│   ├── test/                  # 42 node:test unit tests (no network required)
 │   ├── tsconfig.json          # NodeNext TypeScript config
 │   └── .env.example           # Credential template (NEVER commit .env)
 ├── snowflake/                 # SQL blueprints & platform setup
@@ -251,12 +275,22 @@ clearset-ai/
 │   ├── 02_seeds.sql           # Seed data incl. protected TRD-92831, TRD-81232
 │   ├── 03_semantic_views.sql  # Enriched analytical views
 │   ├── 04_cortex_search.sql   # CLEARSET_POLICY_SEARCH_SERVICE setup
-│   ├── 07_semantic_model.yaml # Semantic model (Autopilot-built)
+│   ├── 07_semantic_model_CORRECTED.yaml # Semantic view (deployed via SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML)
 │   ├── 08_resolution_cases.sql# RESOLUTION_CASES audit ledger DDL
 │   ├── 09_demo_data_expansion.sql # 35-trade multi-scenario portfolio
-│   └── 10_refresh_demo_dates.sql  # Re-anchor cutoffs to today (idempotent)
-├── scripts/                      # coco_investigate.mjs — CoCo CLI launcher
-├── docs/                         # COCO_RUNBOOK.md + judge materials
+│   ├── 10_refresh_demo_dates.sql  # Re-anchor cutoffs to today (idempotent)
+│   └── ops/cost-7d.sql        # Warehouse cost report (7-day window)
+├── scripts/
+│   ├── coco_investigate.mjs   # CoCo CLI launcher — drives `cortex exec`
+│   ├── migrate/               # cutover.ps1 · migrate_all.py · repair_demo_data.py
+│   └── test/test-spcs.py      # SPCS service smoke test (health, endpoints, auth)
+├── docs/                      # Start at docs/README.md (full index)
+│   ├── JUDGE_QUICKSTART.md    # 5-minute evaluation script
+│   ├── DEMO_VIDEO.md          # Narration script + shot list
+│   ├── COCO_RUNBOOK.md        # CoCo CLI procedure, safety notes, transcripts
+│   ├── api/ · architecture/ · deployment/
+│   ├── security/LEAST_PRIVILEGE_ROLE.md
+│   └── archive/               # Workshop transcripts + superseded plans
 ├── skills/                       # CoCo CLI skill definitions (7)
 │   ├── assess_settlement_risk/SKILL.md
 │   ├── determine_root_cause/SKILL.md
@@ -265,14 +299,20 @@ clearset-ai/
 │   ├── escalate_exception/SKILL.md
 │   ├── retrieve_procedure/SKILL.md
 │   └── investigate_exception/SKILL.md
+├── .snowflake/cortex/skills/  # Registered Cortex skill (visible to `cortex skill list`)
 └── src/
     ├── App.tsx                # Responsive shell + tab routing
     ├── index.css              # Obsidian dark theme + focus/motion tokens
     ├── components/
     │   ├── layout/            # Navbar (health pill) · Sidebar (risk triage)
-    │   └── ui/                # primitives.tsx · tokens.ts (design system)
+    │   ├── ui/                # primitives.tsx · tokens.ts (design system)
+    │   ├── ImpactMetricsTile.tsx       # Live exposure & approval throughput
+    │   ├── PredictionPanel.tsx         # Predictive Failure Prevention (flag)
+    │   ├── SettlementChainViz.tsx      # Settlement Chain Trace (flag)
+    │   └── CocoReplayPanel.tsx         # CoCo CLI Investigation Replay (flag)
     ├── views/                 # Dashboard · Exceptions · Investigation ·
     │                          # Copilot · Cases · Policies
+    ├── hooks/useFeatureFlag.ts # Frontend flag gate (VITE_*)
     ├── services/              # Interface-first hybrid services (live→fallback)
     ├── engine/                # riskEngine.ts (deterministic 0–100) · orchestrator
     ├── context/AppContext.tsx # Central state: exceptions, mode, metrics
@@ -313,7 +353,7 @@ SNOWFLAKE_PASSWORD=your_password
 SNOWFLAKE_DATABASE=CLEARSET_DB
 SNOWFLAKE_SCHEMA=CLEARSET_SCHEMA
 SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-SNOWFLAKE_ROLE=ACCOUNTADMIN   # Temporary — see LEAST_PRIVILEGE_ROLE.md
+SNOWFLAKE_ROLE=ACCOUNTADMIN   # Temporary — see docs/security/LEAST_PRIVILEGE_ROLE.md
 
 # For Cortex Analyst REST API — generate in Snowsight:
 # Admin → Users & Roles → <user> → Programmatic access tokens
@@ -333,7 +373,7 @@ curl -X POST http://localhost:3001/api/cortex/analyst \
 
 > 💡 Demo looking stale? `snowflake/10_refresh_demo_dates.sql` re-anchors all non-protected trades to today's cutoffs — idempotent, rerunnable forever.
 
-### Run the test suite (37 tests, no network needed)
+### Run the test suite (42 tests, no network needed)
 
 ```bash
 npm run server:test
@@ -345,7 +385,25 @@ npm run server:test
 npm run coco:investigate -- TRD-92831
 ```
 
-Requires `cortex` on PATH and the backend healthy on :3001. The agent investigates autonomously and always ends awaiting human authorization.
+Requires `cortex` on PATH and the backend healthy on :3001. The agent investigates autonomously and always ends awaiting human authorization. Each successful run is saved to `public/coco-replay.json`, which powers the in-app **CoCo Replay** panel (`VITE_COCO_CLI_REPLAY=true`). If the run prints `Cortex Code is not enabled…`, the account is missing CoCo credits — the wrapper prints exactly how to unblock it.
+
+---
+
+## 📚 Documentation Map
+
+Start at **[`docs/README.md`](docs/README.md)** — every document in the repo, one line each.
+
+| I want to… | Read |
+|---|---|
+| Evaluate this in 5 minutes | [`docs/JUDGE_QUICKSTART.md`](docs/JUDGE_QUICKSTART.md) |
+| Narrate the demo video | [`docs/DEMO_VIDEO.md`](docs/DEMO_VIDEO.md) |
+| Run the real CoCo CLI investigation | [`docs/COCO_RUNBOOK.md`](docs/COCO_RUNBOOK.md) |
+| Understand the architecture & data flow | [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) |
+| Map an API endpoint | [`docs/api/API.md`](docs/api/API.md) |
+| Deploy / upgrade / roll back on SPCS | [`docs/deployment/DEPLOYMENT.md`](docs/deployment/DEPLOYMENT.md) |
+| Harden roles & remove ACCOUNTADMIN | [`docs/security/LEAST_PRIVILEGE_ROLE.md`](docs/security/LEAST_PRIVILEGE_ROLE.md) |
+| See what changed, and when | [`CHANGELOG.md`](CHANGELOG.md) |
+| Contribute (tests, lint, PR rules) | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 
 ---
 
@@ -359,7 +417,7 @@ Requires `cortex` on PATH and the backend healthy on :3001. The agent investigat
 | **Image Hygiene** | Build-time scan: no `.env*`, no token paths, no secret patterns, no sensitive env vars |
 | **Parameterized SQL** | Every query uses `?` bindings — no string interpolation, ever |
 | **PAT Policy** | `CLEARSET_PAT_POLICY` network rules applied at user level |
-| **Least Privilege Roadmap** | ACCOUNTADMIN is temporary; migration path documented in `LEAST_PRIVILEGE_ROLE.md` |
+| **Least Privilege Roadmap** | ACCOUNTADMIN is temporary; migration path documented in `docs/security/LEAST_PRIVILEGE_ROLE.md` |
 | **Audit Trail** | Human approvals persisted to `RESOLUTION_CASES` with approver identity + timestamp |
 
 ---
@@ -370,21 +428,21 @@ Deployed to **Snowflake Park (SPCS)** — the app runs *inside* your Snowflake a
 
 ```bash
 # 1. Build (pre-built frontend + backend, node:22-alpine runtime)
-docker build -t ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
+docker build -t lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest .
 
 # 2. Push via Snowflake registry auth
-snow spcs image-registry login --connection clearset-prod
-docker push ebgexcw-ly21740.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
-# → digest sha256:d84844965c145dce7d47400f7e46e0961b827fcd7f535ce9bbacf84d6ff620ee
+snow spcs image-registry login --connection clearset-hack
+docker push lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
+# → digest sha256:c0956ebaacbf974f637b94edc6e23c2c41d4c206de7c3b690e52e851c4ae8f35
 
 # 3. Create/Upgrade service
 snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
   --spec-path service-spec.yaml \
   --compute-pool CLEARSET_POOL \
-  --connection clearset-prod
+  --connection clearset-hack
 ```
 
-**Deployment verification record (2026-08-23):**
+**Deployment verification record (2026-09-29, re-verified after account migration):**
 
 | Check | Result |
 |-------|--------|
@@ -410,7 +468,7 @@ snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 
 ## 📄 License
 
-Proprietary — ClearSet AI for the Snowflake CoCo CLI Hackathon 2026 (GCC Edition).
+MIT — see [`LICENSE`](LICENSE). Built for the Snowflake CoCo CLI Hackathon 2026 (GCC Edition).
 
 <div align="center">
 

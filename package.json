@@ -1,7 +1,10 @@
 {
-  "name": "madhan",
+  "name": "clearset-ai",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.1.1",
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -26,8 +29,6 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
-    "@oxlint/binding-win32-x64-msvc": "^1.77.0",
-    "@rolldown/binding-win32-x64-msvc": "^1.2.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.13.3",

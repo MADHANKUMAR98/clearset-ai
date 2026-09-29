@@ -9,6 +9,7 @@ import type {
   ImpactMetricsResponse,
   NotifyCriticalExceptionRequest,
   NotifyCriticalExceptionResponse,
+  PredictionsResponse,
   SlackStatusResponse,
 } from './types';
 
@@ -388,5 +389,23 @@ export async function fetchImpactMetrics(
     return payload;
   } catch {
     return { success: false, mode: 'local', data: null, message: 'Impact metrics unavailable' };
+  }
+}
+
+// ============================================================================
+// GET /api/predict — Predictive Settlement Failure Prevention (feature-flagged)
+// Returns 404 unless PREDICTIVE_ENGINE_ENABLED=true on the backend.
+// ============================================================================
+export async function fetchPredictions(
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<PredictionsResponse> {
+  try {
+    const payload = await fetchWithTimeout<PredictionsResponse>('/api/predict', {}, timeoutMs);
+    if (!payload || !payload.success || !Array.isArray(payload.data)) {
+      return { success: false, data: null, error: 'Predictions unavailable' };
+    }
+    return payload;
+  } catch {
+    return { success: false, data: null, error: 'Predictions unavailable' };
   }
 }

@@ -109,10 +109,9 @@ docs(architecture): update Cortex Analyst section
 - Input validation with Zod/Joi
 
 #### Testing
-- Unit tests for pure functions
-- Integration tests for API endpoints
-- E2E tests for critical user flows
-- Target: >80% coverage for critical paths
+- Unit tests for pure functions and services (`node:test`, no network)
+- Keep new tests inside `server/test/` and wire them into the `server:test` script
+- Target: >80% coverage for critical paths (approval gate, risk scoring, metrics)
 
 #### Linting & Formatting
 - `make lint` - Oxlint (fast, modern)
@@ -121,27 +120,46 @@ docs(architecture): update Cortex Analyst section
 
 ## Testing Guidelines
 
-### Unit Tests
-- Location: `tests/unit/`
-- Naming: `*.test.ts` or `*.test.tsx`
-- Run: `make test-unit`
+### Where the tests live
 
-### Integration Tests
-- Location: `tests/integration/`
-- Test API endpoints with real Snowflake (or mocked)
-- Run: `make test-integration`
+| Suite | Location | Runner | Command |
+|---|---|---|---|
+| Backend unit tests (42) | `server/test/*.test.mjs` | `node:test` | `npm run server:test` (or `make test`) |
+| Frontend type safety | `src/**` | `tsc -b --noEmit` | `make typecheck` |
+| Lint | repo-wide | oxlint | `make lint` |
 
-### E2E Tests
-- Location: `tests/e2e/`
-- Playwright/Cypress for browser automation
-- Run: `make test-e2e`
+The backend suite is **pure unit tests with no network access** — no Snowflake
+connection is opened, so it runs offline, in CI, and in a hurry. Services are
+exercised through their injected dependencies.
+
+Integration behaviour that genuinely needs Snowflake (Cortex Search, Cortex
+Analyst, SPCS health) is covered by documented manual gates instead of a flaky
+CI job:
+
+- `docs/api/API.md` — the verified-response table
+- `scripts/test/test-spcs.py` — post-deploy smoke test
+- `snowflake/05_validation.sql`, `snowflake/06_cortex_search_validation.sql`
+
+### Before you open a PR
+
+```bash
+make verify      # lint + typecheck + test — must be clean
+```
+
+Prefer the npm entry points if you don't have `make`:
+
+```bash
+npm run lint && npx tsc -b --noEmit && npm run server:test
+```
 
 ## Documentation
 
 - Update `README.md` for user-facing changes
+- Update `docs/README.md` if you add, rename, or retire a document
 - Update `docs/architecture/ARCHITECTURE.md` for architectural changes
-- Update `docs/api/` for API changes
+- Update `docs/api/API.md` for API changes
 - Update `docs/deployment/` for deployment changes
+- Add a `CHANGELOG.md` entry for anything a judge could observe
 - JSDoc for public APIs
 
 ## Release Process
@@ -153,8 +171,8 @@ docs(architecture): update Cortex Analyst section
 
 ## Questions?
 
-- Open a [Discussion](https://github.com/your-org/clearset-ai/discussions)
-- Check existing [Issues](https://github.com/your-org/clearset-ai/issues)
+- Open a [Discussion](https://github.com/MADHANKUMAR98/clearset-ai/discussions)
+- Check existing [Issues](https://github.com/MADHANKUMAR98/clearset-ai/issues)
 - Review [Architecture Docs](docs/architecture/ARCHITECTURE.md)
 
 ---
