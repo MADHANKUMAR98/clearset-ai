@@ -185,7 +185,7 @@ jobs:
 
       - name: Setup Snowflake CLI
         if: steps.creds.outputs.available == 'true'
-        uses: snowflakedb/snowflake-cli-action@v1
+        uses: snowflakedb/snowflake-cli-action@v2
         with:
           version: latest
 
