@@ -20,7 +20,7 @@ help:
 	@echo "  make docker-build     Build Docker image"
 	@echo ""
 	@echo "Testing:"
-	@echo "  make test             Run backend test suite (42 tests, node:test)"
+	@echo "  make test             Run backend test suite (45 tests, node:test)"
 	@echo "  make test-server      Alias of make test"
 	@echo "  make lint             Run linter (oxlint)"
 	@echo "  make typecheck        Run TypeScript type checking"

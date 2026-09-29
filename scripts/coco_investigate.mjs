@@ -55,12 +55,16 @@ export function buildPrompt(tradeId, backendUrl = BACKEND) {
     `Use the investigate-settlement-exception skill to investigate settlement exception ${tradeId}.`,
     ``,
     `Follow all 10 steps of the skill against the ClearSet backend at ${backendUrl}.`,
-    `Every evidence line you print MUST begin with exactly one provenance label describing its true source:`,
+    `Every evidence line you print MUST begin with exactly one provenance label describing its true source,`,
+    `placed at the very start of the line (a list marker such as "1. " or "- " may come first):`,
     `[LIVE SNOWFLAKE] [CORTEX ANALYST] [CORTEX SEARCH] [COMPUTED] [LOCAL FALLBACK].`,
     `Begin your output with the line [COCO CLI] investigation started for ${tradeId}.`,
     `Do NOT hardcode values — retrieve everything at runtime for ${tradeId} only.`,
     `You are strictly READ-ONLY: do not create cases, send messages, or modify anything.`,
-    `Your SINGLE final message must contain ALL of: the Step 8 deterministic risk factor table,`,
+    `Your SINGLE final message must be the complete report containing ALL 10 sections.`,
+    `Each section MUST start with its own header line reading exactly "STEP <n> - <TITLE>",`,
+    `for STEP 1 through STEP 10 in that order — no section may be merged or omitted.`,
+    `It must include the Step 8 deterministic risk factor table,`,
     `the Step 9 root-cause analysis, and the Step 10 recommendation block ending with`,
     `"AWAITING ANALYST AUTHORISATION". Do not stop after Step 7.`,
   ].join('\n');
@@ -72,6 +76,22 @@ export function stripAnsi(text) {
   // oxlint-disable-next-line no-control-regex -- ANSI escapes must be matched literally
   return normalised.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '');
 }
+
+/**
+ * True when a fragment is only decorative ruling (box-drawing, asterisks, dashes)
+ * with no readable content. Reports often pad headers with `━━━…`, which must never
+ * surface as extracted evidence or a highlight.
+ */
+export function isDecorative(text) {
+  const value = String(text ?? '').trim();
+  if (value.length === 0) return true;
+  return [...value].every((ch) =>
+    /[\s\u2500-\u257F\u2580-\u259F~*=._·•▪►▸→←\\/|-]/.test(ch),
+  );
+}
+
+/** Leading list markers / markdown decoration a report line may be prefixed with. */
+const MARKER_PREFIX = '(?:\\d{1,2}[.)]\\s*|[-*#>]\\s*)*';
 
 /**
  * Parses a raw `cortex exec` transcript into the replay artefact consumed by
@@ -87,13 +107,28 @@ export function buildReplay(tradeId, rawOutput, meta = {}) {
   const steps = [];
   const prelude = { n: 0, title: 'Session start', evidence: [] };
   let current = null;
-  const labelPattern = new RegExp(`^\\[(${PROVENANCE_LABELS.join('|')})\\]\\s*(.*)$`, 'i');
-  const stepPattern = /^\s*(?:#+\s*)?step\s*(\d{1,2})\s*[.):-]*\s*(.*)$/i;
+  // Evidence lines start with a provenance label, optionally after a list marker
+  // ("1. [LIVE SNOWFLAKE] …", "  - [CORTEX SEARCH] …").
+  const labelPattern = new RegExp(
+    `^\\s*${MARKER_PREFIX}\\[(${PROVENANCE_LABELS.join('|')})\\]\\s*(.*)$`,
+    'i',
+  );
+  // Section headers: "STEP 10 — TITLE", "## Step 1: TITLE", "**Step 3** …". Anchored
+  // at line start so narrative like "Steps 1-3 complete" is never a section.
+  const stepPattern = new RegExp(
+    `^\\s*${MARKER_PREFIX}[Ss]tep\\s*(\\d{1,2})\\s*(?:[.):\\-\\u2013\\u2014]|\\s*$)\\s*(.*)$`,
+    'i',
+  );
 
   for (const line of transcript) {
     const stepMatch = line.match(stepPattern);
     if (stepMatch) {
-      current = { n: Number(stepMatch[1]), title: (stepMatch[2] || '').trim(), evidence: [] };
+      const title = (stepMatch[2] || '')
+        .replace(/^[\s.):\---]+/, '')
+        .replace(/[\s\u2500-\u257F]+$/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      current = { n: Number(stepMatch[1]), title, evidence: [] };
       steps.push(current);
       continue;
     }
@@ -112,8 +147,17 @@ export function buildReplay(tradeId, rawOutput, meta = {}) {
   const riskMatch = joined.match(
     /(?:deterministic\s+score|risk\s+score)\D{0,12}(\d{1,3})\s*(?:\/\s*100)?/i,
   ) || joined.match(/\b(\d{1,3})\s*\/\s*100\b/);
-  const rootCauseMatches = [...joined.matchAll(/root[\s-]*cause\s*[:-]?\s*(.{10,300})/gi)];
-  const recMatches = [...joined.matchAll(/recommendations?\s*[:-]?\s*(.{10,300})/gi)];  const awaitingMatch = joined.match(/AWAITING\s+[A-Z' ]{4,40}/);
+  const rootCauses = [...joined.matchAll(/root[\s-]*cause\s*[:-]?\s*(.{10,300})/gi)]
+    .map((m) => m[1].trim())
+    .filter((value) => !isDecorative(value));
+  // Prefer the explicit "Applicable SOP:" recommendation; otherwise the last readable
+  // "Recommendation:" capture — decorative rules and section headers are rejected so a
+  // "STEP 10 — RESOLUTION RECOMMENDATION━━━…" line can never become the highlight.
+  const sopMatch = joined.match(/applicable\s+sop\s*[:-]\s*(.{5,200})/i);
+  const recommendations = [...joined.matchAll(/recommendations?\s*[:-]?\s*(.{10,300})/gi)]
+    .map((m) => m[1].trim())
+    .filter((value) => !isDecorative(value) && !/^step\s*\d/i.test(value));
+  const awaitingMatch = joined.match(/AWAITING\s+[A-Z' ]{4,40}/);
 
   return {
     skill: SKILL_NAME,
@@ -125,10 +169,12 @@ export function buildReplay(tradeId, rawOutput, meta = {}) {
     steps,
     highlight: {
       riskScore: riskMatch ? Number(riskMatch[1]) : undefined,
-      rootCause: rootCauseMatches.length
-        ? rootCauseMatches[rootCauseMatches.length - 1][1].trim()
-        : undefined,
-      recommendation: recMatches.length ? recMatches[recMatches.length - 1][1].trim() : undefined,
+      rootCause: rootCauses.length ? rootCauses[rootCauses.length - 1] : undefined,
+      recommendation: sopMatch
+        ? sopMatch[1].trim()
+        : recommendations.length
+          ? recommendations[recommendations.length - 1]
+          : undefined,
       awaiting: awaitingMatch ? awaitingMatch[0].trim() : undefined,
     },
     transcript,

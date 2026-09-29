@@ -59,7 +59,7 @@ jobs:
           npm ci
           cd server && npm ci
 
-      - name: Run test suite (42 tests)
+      - name: Run test suite (45 tests)
         run: npm run server:test
 
   # ============================================================

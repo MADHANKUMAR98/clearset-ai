@@ -190,7 +190,7 @@ Key configuration points:
 | `SNOWFLAKE_DATABASE` | Spec | CLEARSET_DB |
 | `SNOWFLAKE_SCHEMA` | Spec | CLEARSET_SCHEMA |
 | `SNOWFLAKE_WAREHOUSE` | Spec | COMPUTE_WH |
-| `SNOWFLAKE_ROLE` | Spec | ACCOUNTADMIN |
+| `SNOWFLAKE_ROLE` | *not set* | Each request runs as the signed-in user's own default role (judges = `CLEARSET_JUDGE_ROLE`). Forcing a role here would reject judge sessions — see `server/snowflakeClient.ts`. |
 | `PREDICTIVE_ENGINE_ENABLED` | Spec | `"true"` — enables `/api/predict`; `"false"` (or delete the line + upgrade) = 404 and the panel disappears |
 | `SNOWFLAKE_HOST` | SPCS Runtime | Auto-injected |
 | `SNOWFLAKE_ACCOUNT` | SPCS Runtime | Auto-injected |
@@ -204,7 +204,7 @@ Key configuration points:
 snow sql -q "DESCRIBE COMPUTE POOL CLEARSET_POOL" --connection clearset-hack
 
 # Check service logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --instance-id 0 --container-name clearset-ai --num-lines 60 --connection clearset-hack
 ```
 
 ### Image Pull Errors
@@ -260,9 +260,9 @@ snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
 
 ### Logs
 ```bash
-# View service logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack
+# View service logs (instance-id + container-name are both required)
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --instance-id 0 --container-name clearset-ai --num-lines 60 --connection clearset-hack
 
 # Follow logs
-snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --connection clearset-hack --follow
+snow spcs service logs CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI --instance-id 0 --container-name clearset-ai --connection clearset-hack --follow
 ```

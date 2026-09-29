@@ -1,0 +1,484 @@
+{
+  "skill": "investigate-settlement-exception",
+  "tradeId": "TRD-92831",
+  "invocation": "npm run coco:investigate -- TRD-92831",
+  "status": "complete",
+  "startedAt": "2026-09-29T14:19:48.728Z",
+  "durationMs": 268271,
+  "steps": [
+    {
+      "n": 0,
+      "title": "Session start",
+      "evidence": [
+        {
+          "label": "COCO CLI",
+          "text": "investigation started for TRD-92831."
+        }
+      ]
+    },
+    {
+      "n": 1,
+      "title": "VERIFY CONNECTION AND DATA MODE",
+      "evidence": [
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "Health endpoint returned `snowflake: true`."
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "Session: Account `WL10034`, User `MADHANKUMAR98`, Role `ACCOUNTADMIN`, Warehouse `COMPUTE_WH`, Database `CLEARSET_DB`, Schema `CLEARSET_SCHEMA`."
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "All subsequent steps use live Snowflake data."
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "title": "RETRIEVE EXCEPTION DETAILS",
+      "evidence": [
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "EXCEPTION_ID: **EX-92831**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "TRADE_ID: **TRD-92831**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "EXCEPTION_TYPE: **Missing Instruction**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "RISK_SCORE: **91/100**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SEVERITY: **CRITICAL**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SSI_STATUS: **MISSING**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "EXCEPTION_STATUS: **OPEN**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "TRADE_VALUE: **$2,400,000 USD**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SETTLEMENT_TYPE: **DVP**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SETTLEMENT_DATE: **2026-08-09**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CUTOFF_TIME: **2026-08-09 15:30:00 UTC**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "MINUTES_TO_CUTOFF: **-72,950** (cutoff has passed)"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "COUNTERPARTY_NAME: **Apex Prime Clearing Ltd.**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CP_ID: **CP-192**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CREDIT_RATING: **A**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "PRIOR_FAILURES_30D: **7**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "HISTORICAL_FAIL_RATE: **8.4%**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CUSTODIAN_BIC: **APEXUS33XXX**"
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "title": "RETRIEVE TRADE MASTER DATA",
+      "evidence": [
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "TICKER: **AAPL**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "ISIN: **US0378331005**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SECURITY_NAME: Apple Inc. Common Stock"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "ASSET_CLASS: **Equities**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "DEPOSITORY: **DTC**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SETTLEMENT_TYPE: **DVP**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SETTLEMENT_STATUS: **PENDING**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "INSTRUCTION_STATUS: **MISSING**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "SETTLEMENT_DATE: **2026-08-09**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "TRADE_DATE: **2026-08-09 09:32:00 UTC**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CUTOFF_TIME: **2026-08-09 15:30:00 UTC**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "BOOKING_DESK: **US Institutional Equities**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "QUANTITY: 12,000 shares @ $200.00"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CURRENCY: USD"
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "title": "RETRIEVE SETTLEMENT EVENT HISTORY",
+      "evidence": []
+    },
+    {
+      "n": 5,
+      "title": "RETRIEVE COUNTERPARTY RISK PROFILE",
+      "evidence": [
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "NAME: **Apex Prime Clearing Ltd.**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "BIC: **APEXUS33XXX**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "LEI: **5493006MHB84DD0Z4J21**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "CREDIT_RATING: **A**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "PRIOR_FAILURES_30D: **7**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "HISTORICAL_FAIL_RATE: **8.4%**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "AVG_RESOLUTION_HOURS: **4.2 hours**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "TOTAL_TRADES_TODAY: **84**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "PRIMARY_DESK_CONTACT: **Marcus Vance (Equities Clearing Desk NY)**"
+        },
+        {
+          "label": "LIVE SNOWFLAKE",
+          "text": "PRIMARY_EMAIL: settlements.desk@apexclearing.com"
+        }
+      ]
+    },
+    {
+      "n": 6,
+      "title": "RETRIEVE APPLICABLE SOP VIA CORTEX SEARCH",
+      "evidence": [
+        {
+          "label": "CORTEX SEARCH",
+          "text": "**Primary SOP (SOP-3.2):** \"When a Missing SSI exception is detected, immediately dispatch an automated SSI repair request to the counterparty operations desk. If not resolved within 30 minutes, escalate to desk lead via phone. For trades > $1M, trigger early escalation protocol.\""
+        }
+      ]
+    },
+    {
+      "n": 7,
+      "title": "CONFIRM ANALYTICS VIA CORTEX ANALYST",
+      "evidence": [
+        {
+          "label": "CORTEX ANALYST",
+          "text": "Query: \"Show me trade TRD-92831 with its trade value, settlement status, instruction status, risk score, and exception type.\""
+        },
+        {
+          "label": "CORTEX ANALYST",
+          "text": "SQL generated joining `CLEARSET_DB.CLEARSET_SCHEMA.TRADES` and `CLEARSET_DB.CLEARSET_SCHEMA.EXCEPTIONS`."
+        },
+        {
+          "label": "COMPUTED",
+          "text": "All fields match. No discrepancies detected between API retrieval and Cortex Analyst semantic query."
+        }
+      ]
+    },
+    {
+      "n": 8,
+      "title": "APPLY DETERMINISTIC RISK SCORING",
+      "evidence": [
+        {
+          "label": "COMPUTED",
+          "text": "Calculated score: **91/100** — matches Snowflake-stored RISK_SCORE of 91 and ClearSet Risk Engine flag (EVT-105)."
+        },
+        {
+          "label": "COMPUTED",
+          "text": "Severity tier: **CRITICAL**"
+        }
+      ]
+    },
+    {
+      "n": 9,
+      "title": "DETERMINE ROOT CAUSE",
+      "evidence": [
+        {
+          "label": "COMPUTED",
+          "text": "**Counterparty systemic SSI deficiency:** Apex Prime Clearing has 7 settlement failures in the past 30 days with an 8.4% historical fail rate, well above institutional norms. This indicates a recurring pattern of SSI maintenance failures, not an isolated incident."
+        },
+        {
+          "label": "COMPUTED",
+          "text": "**Cutoff breach:** The DTC intraday cycle cutoff (15:30 UTC, 2026-08-09) has long passed. The trade remains in PENDING status with no resolution, meaning this is now a failed settlement requiring T+1 rebooking procedures."
+        },
+        {
+          "label": "COMPUTED",
+          "text": "**Material financial exposure:** At $2.4M DVP, this trade exceeds the SOP-3.2 $1M early escalation threshold, triggering mandatory desk-lead phone escalation within 30 minutes of detection."
+        },
+        {
+          "label": "COMPUTED",
+          "text": "**Policy match:** SOP-3.2 explicitly lists CP-192 as an applicable counterparty for the Expedited SSI Repair procedure, confirming this is a known risk counterparty."
+        }
+      ]
+    },
+    {
+      "n": 10,
+      "title": "PRODUCE RECOMMENDATION (HUMAN APPROVAL REQUIRED)",
+      "evidence": []
+    }
+  ],
+  "highlight": {
+    "riskScore": 91,
+    "rootCause": "Missing SSI at DTC for CP-192 subaccount",
+    "recommendation": "SOP-3.2 — Expedited SSI Repair",
+    "awaiting": "AWAITING ANALYST AUTHORISATION"
+  },
+  "transcript": [
+    "[COCO CLI] investigation started for TRD-92831.",
+    "Let me load the investigation skill first.Starting the investigation. Let me execute the first few steps in parallel.PowerShell alias issue — switching to `curl.exe`.Data retrieved for Steps 1-3. Now fetching Steps 4-7 in parallel.Steps 4 and 5 succeeded. The POST requests need PowerShell-compatible JSON escaping. Let me retry Steps 6 and 7.All data collected for Steps 1-7. Now compiling the complete 10-step investigation report.",
+    "---",
+    "```",
+    "CLEARSET AI — SETTLEMENT EXCEPTION INVESTIGATION",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "```",
+    "## STEP 1 - VERIFY CONNECTION AND DATA MODE",
+    "- [LIVE SNOWFLAKE] Health endpoint returned `snowflake: true`.",
+    "- [LIVE SNOWFLAKE] Session: Account `WL10034`, User `MADHANKUMAR98`, Role `ACCOUNTADMIN`, Warehouse `COMPUTE_WH`, Database `CLEARSET_DB`, Schema `CLEARSET_SCHEMA`.",
+    "- [LIVE SNOWFLAKE] All subsequent steps use live Snowflake data.",
+    "## STEP 2 - RETRIEVE EXCEPTION DETAILS",
+    "- [LIVE SNOWFLAKE] EXCEPTION_ID: **EX-92831**",
+    "- [LIVE SNOWFLAKE] TRADE_ID: **TRD-92831**",
+    "- [LIVE SNOWFLAKE] EXCEPTION_TYPE: **Missing Instruction**",
+    "- [LIVE SNOWFLAKE] RISK_SCORE: **91/100**",
+    "- [LIVE SNOWFLAKE] SEVERITY: **CRITICAL**",
+    "- [LIVE SNOWFLAKE] SSI_STATUS: **MISSING**",
+    "- [LIVE SNOWFLAKE] EXCEPTION_STATUS: **OPEN**",
+    "- [LIVE SNOWFLAKE] TRADE_VALUE: **$2,400,000 USD**",
+    "- [LIVE SNOWFLAKE] SETTLEMENT_TYPE: **DVP**",
+    "- [LIVE SNOWFLAKE] SETTLEMENT_DATE: **2026-08-09**",
+    "- [LIVE SNOWFLAKE] CUTOFF_TIME: **2026-08-09 15:30:00 UTC**",
+    "- [LIVE SNOWFLAKE] MINUTES_TO_CUTOFF: **-72,950** (cutoff has passed)",
+    "- [LIVE SNOWFLAKE] COUNTERPARTY_NAME: **Apex Prime Clearing Ltd.**",
+    "- [LIVE SNOWFLAKE] CP_ID: **CP-192**",
+    "- [LIVE SNOWFLAKE] CREDIT_RATING: **A**",
+    "- [LIVE SNOWFLAKE] PRIOR_FAILURES_30D: **7**",
+    "- [LIVE SNOWFLAKE] HISTORICAL_FAIL_RATE: **8.4%**",
+    "- [LIVE SNOWFLAKE] CUSTODIAN_BIC: **APEXUS33XXX**",
+    "## STEP 3 - RETRIEVE TRADE MASTER DATA",
+    "- [LIVE SNOWFLAKE] TICKER: **AAPL**",
+    "- [LIVE SNOWFLAKE] ISIN: **US0378331005**",
+    "- [LIVE SNOWFLAKE] SECURITY_NAME: Apple Inc. Common Stock",
+    "- [LIVE SNOWFLAKE] ASSET_CLASS: **Equities**",
+    "- [LIVE SNOWFLAKE] DEPOSITORY: **DTC**",
+    "- [LIVE SNOWFLAKE] SETTLEMENT_TYPE: **DVP**",
+    "- [LIVE SNOWFLAKE] SETTLEMENT_STATUS: **PENDING**",
+    "- [LIVE SNOWFLAKE] INSTRUCTION_STATUS: **MISSING**",
+    "- [LIVE SNOWFLAKE] SETTLEMENT_DATE: **2026-08-09**",
+    "- [LIVE SNOWFLAKE] TRADE_DATE: **2026-08-09 09:32:00 UTC**",
+    "- [LIVE SNOWFLAKE] CUTOFF_TIME: **2026-08-09 15:30:00 UTC**",
+    "- [LIVE SNOWFLAKE] BOOKING_DESK: **US Institutional Equities**",
+    "- [LIVE SNOWFLAKE] QUANTITY: 12,000 shares @ $200.00",
+    "- [LIVE SNOWFLAKE] CURRENCY: USD",
+    "## STEP 4 - RETRIEVE SETTLEMENT EVENT HISTORY",
+    "5 events retrieved in chronological order:",
+    "| # | Timestamp (UTC) | Message Type | Status | Source | Description |",
+    "|---|---|---|---|---|---|",
+    "| 1 | [LIVE SNOWFLAKE] 2026-08-09 09:32:00 | INTERNAL_ALERT | TRADE_BOOKED | MATCHING_ENGINE | Trade booked by Equities Desk TR-8821: Buy 12,000 AAPL @ $200.00 ($2.4M DVP). |",
+    "| 2 | [LIVE SNOWFLAKE] 2026-08-09 09:32:05 | SWIFT MT541 | SSI_LOOKUP_INITIATED | MATCHING_ENGINE | Automated SSI engine queried Alert master repository for CP-192 / DTC Participant 0244. |",
+    "| 3 | [LIVE SNOWFLAKE] 2026-08-09 09:32:15 | SWIFT MT548 | SSI_NOT_FOUND | DEPOSITORY | No valid standing settlement instruction found for subaccount. Exception flag raised. |",
+    "| 4 | [LIVE SNOWFLAKE] 2026-08-09 11:45:00 | INTERNAL_ALERT | CUTOFF_WARNING_T120 | CLEARSET_AGENT | 120 minutes remaining before 15:30 EST DTC intraday cycle cutoff. |",
+    "| 5 | [LIVE SNOWFLAKE] 2026-08-09 11:48:12 | INTERNAL_ALERT | CRITICAL_RISK_FLAGGED | CLEARSET_AGENT | ClearSet Risk Engine flagged trade with Deterministic Score: 91/100 (CRITICAL). Escalation workflow primed. |",
+    "## STEP 5 - RETRIEVE COUNTERPARTY RISK PROFILE",
+    "- [LIVE SNOWFLAKE] NAME: **Apex Prime Clearing Ltd.**",
+    "- [LIVE SNOWFLAKE] BIC: **APEXUS33XXX**",
+    "- [LIVE SNOWFLAKE] LEI: **5493006MHB84DD0Z4J21**",
+    "- [LIVE SNOWFLAKE] CREDIT_RATING: **A**",
+    "- [LIVE SNOWFLAKE] PRIOR_FAILURES_30D: **7**",
+    "- [LIVE SNOWFLAKE] HISTORICAL_FAIL_RATE: **8.4%**",
+    "- [LIVE SNOWFLAKE] AVG_RESOLUTION_HOURS: **4.2 hours**",
+    "- [LIVE SNOWFLAKE] TOTAL_TRADES_TODAY: **84**",
+    "- [LIVE SNOWFLAKE] PRIMARY_DESK_CONTACT: **Marcus Vance (Equities Clearing Desk NY)**",
+    "- [LIVE SNOWFLAKE] PRIMARY_EMAIL: settlements.desk@apexclearing.com",
+    "## STEP 6 - RETRIEVE APPLICABLE SOP VIA CORTEX SEARCH",
+    "Top 3 policy citations from `CLEARSET_POLICY_SEARCH_SERVICE`:",
+    "| Rank | Doc Code | Section | Policy Name | Relevance |",
+    "|---|---|---|---|---|",
+    "| 1 | [CORTEX SEARCH] **SOP-3.2** | **Expedited SSI Repair** | Settlement Exception SOP §3.2 | cosine: 0.584, reranker: -4.58 |",
+    "| 2 | [CORTEX SEARCH] **SOP-4.1** | Post-Cutoff Fail Logging | Settlement Exception SOP §4.1 | cosine: 0.488, reranker: -10.03 |",
+    "| 3 | [CORTEX SEARCH] **CSDR-001** | Penalty Prevention | CSDR Penalty Avoidance Protocol | cosine: 0.383, reranker: -11.30 |",
+    "- [CORTEX SEARCH] **Primary SOP (SOP-3.2):** \"When a Missing SSI exception is detected, immediately dispatch an automated SSI repair request to the counterparty operations desk. If not resolved within 30 minutes, escalate to desk lead via phone. For trades > $1M, trigger early escalation protocol.\"",
+    "## STEP 7 - CONFIRM ANALYTICS VIA CORTEX ANALYST",
+    "- [CORTEX ANALYST] Query: \"Show me trade TRD-92831 with its trade value, settlement status, instruction status, risk score, and exception type.\"",
+    "- [CORTEX ANALYST] SQL generated joining `CLEARSET_DB.CLEARSET_SCHEMA.TRADES` and `CLEARSET_DB.CLEARSET_SCHEMA.EXCEPTIONS`.",
+    "| Field | Cortex Analyst Result | Steps 2-3 Value | Match |",
+    "|---|---|---|---|",
+    "| TRADE_ID | [CORTEX ANALYST] TRD-92831 | TRD-92831 | YES |",
+    "| TRADE_VALUE | [CORTEX ANALYST] $2,400,000 | $2,400,000 | YES |",
+    "| SETTLEMENT_STATUS | [CORTEX ANALYST] PENDING | PENDING | YES |",
+    "| INSTRUCTION_STATUS | [CORTEX ANALYST] MISSING | MISSING | YES |",
+    "| RISK_SCORE | [CORTEX ANALYST] 91 | 91 | YES |",
+    "| EXCEPTION_TYPE | [CORTEX ANALYST] Missing Instruction | Missing Instruction | YES |",
+    "- [COMPUTED] All fields match. No discrepancies detected between API retrieval and Cortex Analyst semantic query.",
+    "## STEP 8 - APPLY DETERMINISTIC RISK SCORING",
+    "| Risk Dimension | Condition | Value Retrieved | Points |",
+    "|---|---|---|---|",
+    "| [COMPUTED] Instruction Risk | SSI_STATUS = MISSING | MISSING | **+25** |",
+    "| [COMPUTED] Cutoff Urgency | Cutoff passed (< 120 min threshold breached) | -72,950 min (past cutoff) | **+25** |",
+    "| [COMPUTED] Financial Exposure | Trade value $2,400,000 > $2.0M | $2,400,000 | **+20** |",
+    "| [COMPUTED] Counterparty Track Record | Prior failures 7 > 5 in 30d | 7 failures (8.4% rate) | **+15** |",
+    "| [COMPUTED] Institutional Memory | Historical pattern: CP-192 referenced in SOP-3.2 as applicable counterparty; 8.4% fail rate indicates systemic SSI gaps | SOP-3.2 APPLICABLE_CP_ID = CP-192 | **+6** |",
+    "```",
+    "Risk Breakdown (deterministic):",
+    "  +25  Instruction Risk      — SSI_STATUS = MISSING",
+    "  +25  Cutoff Urgency        — DTC cutoff passed (settlement date 2026-08-09)",
+    "  +20  Financial Exposure    — $2,400,000 > $2.0M threshold",
+    "  +15  Counterparty Record   — 7 failures in 30 days > 5 threshold",
+    "  + 6  Institutional Memory  — CP-192 historical pattern match in SOP-3.2",
+    "  ───",
+    "   91  TOTAL                 → CRITICAL (≥ 80)",
+    "```",
+    "- [COMPUTED] Calculated score: **91/100** — matches Snowflake-stored RISK_SCORE of 91 and ClearSet Risk Engine flag (EVT-105).",
+    "- [COMPUTED] Severity tier: **CRITICAL**",
+    "## STEP 9 - DETERMINE ROOT CAUSE",
+    "1. **Primary failure point:** No valid Standing Settlement Instruction (SSI) exists at DTC for Apex Prime Clearing Ltd. (CP-192, DTC Participant 0244). The automated SSI lookup at 09:32:05 UTC returned `SSI_NOT_FOUND` within 10 seconds of trade booking, indicating the SSI directory has no active entry for this counterparty's subaccount — not a transient lookup failure.",
+    "2. **Contributing factors:**",
+    "   - [COMPUTED] **Counterparty systemic SSI deficiency:** Apex Prime Clearing has 7 settlement failures in the past 30 days with an 8.4% historical fail rate, well above institutional norms. This indicates a recurring pattern of SSI maintenance failures, not an isolated incident.",
+    "   - [COMPUTED] **Cutoff breach:** The DTC intraday cycle cutoff (15:30 UTC, 2026-08-09) has long passed. The trade remains in PENDING status with no resolution, meaning this is now a failed settlement requiring T+1 rebooking procedures.",
+    "   - [COMPUTED] **Material financial exposure:** At $2.4M DVP, this trade exceeds the SOP-3.2 $1M early escalation threshold, triggering mandatory desk-lead phone escalation within 30 minutes of detection.",
+    "   - [COMPUTED] **Policy match:** SOP-3.2 explicitly lists CP-192 as an applicable counterparty for the Expedited SSI Repair procedure, confirming this is a known risk counterparty.",
+    "3. **Distinguishing explanation:** The immediate symptom is a PENDING settlement status with MISSING instruction status at DTC — the depository cannot match the trade because no delivery instruction was submitted. The underlying institutional cause is that Apex Prime Clearing Ltd.'s SSI directory entry for their DTC equity subaccount is either absent, expired, or deactivated. This is not a one-time data entry error; the 7 failures in 30 days and 8.4% historical fail rate demonstrate a systemic gap in Apex Prime's SSI lifecycle management for DTC-settled equities.",
+    "## STEP 10 - PRODUCE RECOMMENDATION (HUMAN APPROVAL REQUIRED)",
+    "```",
+    "RECOMMENDED RESOLUTION PLAN — AWAITING ANALYST AUTHORISATION",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Root Cause:    Missing SSI at DTC for Apex Prime Clearing Ltd. (CP-192)",
+    "               subaccount — no valid standing settlement instruction on file.",
+    "Applicable SOP: SOP-3.2 — Expedited SSI Repair",
+    "Risk Score:    91/100 (CRITICAL)",
+    "Urgency:       IMMEDIATE — DTC cutoff breached, trade unresolved since 2026-08-09",
+    "Proposed Actions (each requires explicit analyst sign-off):",
+    "  1. Request corrected SSI from Apex Prime Clearing via SWIFT MT599 to",
+    "     APEXUS33XXX, referencing TRD-92831 and DTC Participant 0244.",
+    "  2. Escalate immediately to Marcus Vance (Equities Clearing Desk NY)",
+    "     via phone per SOP-3.2 early escalation protocol (trade > $1M).",
+    "  3. Initiate T+1 fail management procedures per SOP-4.1 and rebook",
+    "     the settlement for the next available DTC intraday cycle.",
+    "  4. Monitor DTC depository queue for SSI registration and match",
+    "     confirmation; recalculate risk score upon SSI receipt.",
+    "Regulatory exposure: CSDR penalty approximately $240/day if unresolved",
+    "                     (1 bp/day on $2,400,000 equity settlement fail).",
+    "[ APPROVE ALL ]  [ REJECT ]  [ REQUEST MORE EVIDENCE ]",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "⚠  No operational actions have been dispatched.",
+    "```",
+    "---",
+    "```",
+    "CLEARSET AI — INVESTIGATION SUMMARY",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Trade ID:          TRD-92831",
+    "Exception ID:      EX-92831",
+    "Exception Type:    Missing Instruction",
+    "Trade Value:       $2,400,000 USD",
+    "Risk Score:        91/100 (CRITICAL)",
+    "Data Mode:         LIVE SNOWFLAKE",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Settlement Status:   PENDING",
+    "Instruction Status:  MISSING",
+    "Counterparty:        Apex Prime Clearing Ltd. (CP-192)",
+    "Prior Failures:      7 in past 30 days (8.4% rate)",
+    "Desk Contact:        Marcus Vance (Equities Clearing Desk NY)",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Settlement Events:   5 events retrieved",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Cortex Search:   SOP-3.2 — Expedited SSI Repair",
+    "Cortex Analyst:  TRD-92831 / $2,400,000 / PENDING / MISSING / 91",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Risk Breakdown (deterministic):",
+    "  +25  Instruction Risk (SSI MISSING)",
+    "  +25  Cutoff Urgency (cutoff breached)",
+    "  +20  Financial Exposure ($2.4M > $2.0M)",
+    "  +15  Counterparty Record (7 fails > 5 threshold)",
+    "  + 6  Institutional Memory (CP-192 pattern match)",
+    "  Total: 91/100",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "Root Cause:  Missing SSI at DTC for CP-192 subaccount",
+    "Urgency:     IMMEDIATE",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "RECOMMENDED ACTIONS — PENDING HUMAN APPROVAL:",
+    "  1. Request corrected SSI via SWIFT MT599 to APEXUS33XXX",
+    "  2. Phone escalation to Marcus Vance per SOP-3.2",
+    "  3. Initiate T+1 fail management per SOP-4.1",
+    "  4. Monitor DTC queue; recalculate risk on confirmation",
+    "CSDR Penalty if unresolved: ~$240/day",
+    "⚠  AWAITING ANALYST AUTHORISATION — No actions dispatched.",
+    "```"
+  ]
+}

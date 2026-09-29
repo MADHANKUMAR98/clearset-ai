@@ -16,7 +16,7 @@ npm run dev                   # terminal 2  → http://localhost:5173
 #    VITE_COCO_CLI_REPLAY=true
 
 # 3. data fresh + checks green
-npm run server:test           # 42 passing
+npm run server:test           # 45 passing
 curl http://localhost:3001/api/health     # {"mode":"snowflake","snowflake":true}
 
 # 4. CoCo investigation BEFORE recording (needs CoCo credits enabled)
@@ -35,7 +35,7 @@ npm run coco:investigate -- TRD-92831     # writes public/coco-replay.json
 | 2:55–3:20 | Dashboard | **CoCo Replay** panel: same run replayed step-by-step with the re-run command | "Every investigation is archived and replayable in-app." |
 | 3:20–3:55 | Prediction → expand → **Draft prevention MT599** | SWIFT draft with `DRAFT — AWAITING HUMAN APPROVAL` banner, then Approve → **Cases ledger** → **Audit PDF** | "AI drafts, humans approve, and the approval is evidence-grade." |
 | 3:55–4:20 | Copilot | Paste the TRD-81232 question → Cortex Analyst answer with source label | "Ask anything; if the governed model can't answer, it declines instead of inventing." |
-| 4:20–4:40 | Flags + tests | Set `VITE_PREDICTIVE_ENGINE=false`, refresh → panel gone, `/api/predict` 404; then `npm run server:test` → 42 passing | "Every wow feature is flag-gated: rollback is an env var, not a redeploy." |
+| 4:20–4:40 | Flags + tests | Set `VITE_PREDICTIVE_ENGINE=false`, refresh → panel gone, `/api/predict` 404; then `npm run server:test` → 45 passing | "Every wow feature is flag-gated: rollback is an env var, not a redeploy." |
 
 ## Closing line
 

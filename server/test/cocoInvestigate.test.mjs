@@ -11,6 +11,7 @@ import {
   isValidTradeId,
   buildPrompt,
   stripAnsi,
+  isDecorative,
   buildReplay,
   saveReplay,
   diagnoseFailure,
@@ -49,6 +50,14 @@ test('buildPrompt carries provenance labels and read-only contract', () => {
   assert.match(prompt, /AWAITING ANALYST AUTHORISATION/);
   // Completion contract: agent must deliver steps 8-10 in its final message.
   assert.match(prompt, /Step 8 deterministic risk factor table/);
+});
+
+test('buildPrompt demands a STEP header for every one of the 10 sections', () => {
+  const prompt = buildPrompt('TRD-92831');
+  assert.match(prompt, /complete report containing ALL 10 sections/);
+  assert.match(prompt, /STEP <n> - <TITLE>/);
+  assert.match(prompt, /STEP 1 through STEP 10/);
+  assert.match(prompt, /no section may be merged or omitted/);
 });
 
 test('buildPrompt honours a custom backend URL', () => {
@@ -103,6 +112,46 @@ test('buildReplay marks truncated runs as partial and strips ANSI first', () => 
   assert.equal(replay.status, 'partial');
   assert.equal(replay.highlight.riskScore, undefined);
   assert.ok(replay.transcript.every((line) => !line.includes('\u001b')));
+});
+
+// Shaped like a real `cortex exec` run: provenance labels behind list markers,
+// decorative ruling after headers, and narrative lines that are NOT sections.
+const RICH_RUN = [
+  '[COCO CLI] investigation started for TRD-92831',
+  'Loading skill. Steps 1-3 complete. Steps 4-5 in parallel. Steps 6-7 complete.',
+  'STEP 1 — TRADE MASTER DATA',
+  '1. [LIVE SNOWFLAKE] /api/trades returned TRD-92831 value $2,400,000',
+  '## Step 2: Depository gateway status',
+  '  - [CORTEX SEARCH] SOP-3.2 Expedited SSI Repair',
+  'STEP 10 — RESOLUTION RECOMMENDATION━━━━━━━━━━━━━━',
+  'Root Cause: Missing SSI for CP-192 at DTC 0244',
+  'Applicable SOP: SOP-3.2 — Expedited SSI Repair',
+  'Recommendation: ━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+  'AWAITING ANALYST AUTHORISATION',
+].join('\n');
+
+test('buildReplay reads labels behind list markers and rejects decorative rules', () => {
+  const replay = buildReplay('TRD-92831', RICH_RUN, { durationMs: 42 });
+
+  assert.deepEqual(replay.steps.map((s) => s.n), [0, 1, 2, 10]);
+  assert.equal(replay.steps[1].title, 'TRADE MASTER DATA');
+
+  const labels = replay.steps.flatMap((s) => s.evidence).map((e) => e.label);
+  assert.ok(labels.includes('LIVE SNOWFLAKE'), 'label behind a "1. " list marker');
+  assert.ok(labels.includes('CORTEX SEARCH'), 'label behind a "- " list marker');
+
+  assert.equal(replay.highlight.rootCause, 'Missing SSI for CP-192 at DTC 0244');
+  assert.equal(replay.highlight.recommendation, 'SOP-3.2 — Expedited SSI Repair');
+  assert.equal(replay.highlight.awaiting, 'AWAITING ANALYST AUTHORISATION');
+  assert.equal(replay.status, 'complete');
+});
+
+test('isDecorative separates ruling from readable content', () => {
+  assert.equal(isDecorative('━━━━━━━━━━━━'), true);
+  assert.equal(isDecorative('─── ─── ───'), true);
+  assert.equal(isDecorative('   '), true);
+  assert.equal(isDecorative('expedite SSI repair before cutoff'), false);
+  assert.equal(isDecorative('SOP-3.2 — Expedited SSI Repair'), false);
 });
 
 test('saveReplay writes a parseable artefact for the front-end', async () => {

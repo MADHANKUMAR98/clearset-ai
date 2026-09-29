@@ -28,7 +28,9 @@ spec:
         SNOWFLAKE_DATABASE: "CLEARSET_DB"
         SNOWFLAKE_SCHEMA: "CLEARSET_SCHEMA"
         SNOWFLAKE_WAREHOUSE: "COMPUTE_WH"
-        SNOWFLAKE_ROLE: "ACCOUNTADMIN"
+        # No SNOWFLAKE_ROLE here on purpose: each request runs as the signed-in
+        # Snowflake user's own default role (judges = CLEARSET_JUDGE_ROLE).
+        # Pinning a role would reject judge sessions (08001 role-not-granted).
         # Feature flag: Predictive Failure Prevention API (/api/predict).
         # "false" (or removing this line) makes the route 404 and hides the
         # panel — rollback is an env var, not a redeploy of the database.

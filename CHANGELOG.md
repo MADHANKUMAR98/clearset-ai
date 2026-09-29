@@ -20,7 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README badges (tests / lint / license / node / hackathon) and a *Documentation Map* section
 
 ### Fixed
-- **CI ran scripts that do not exist** (`npm run test:unit`, `npm run test:integration`) → the workflow now runs `npm run server:test` (42 tests); the phantom integration job was removed and deploy/smoke jobs now skip cleanly when repository secrets are absent
+- **Judges could not have used the deployed app** — found by authenticating as `CLEARSET_JUDGE` and exercising every SQL path the server runs. Three independent defects, all fixed:
+  1. `server/snowflakeClient.ts` pinned `role: SNOWFLAKE_ROLE` (`ACCOUNTADMIN` in `service-spec.yaml`) onto the SPCS OAuth connection. The injected token belongs to the signed-in user, so every judge session was refused at login (`250001 / 08001 Role 'ACCOUNTADMIN' ... not granted to this user`) and every SQL-backed page would have failed. The OAuth path no longer forces a role — each request runs as the signed-in user's own default role (`CLEARSET_JUDGE_ROLE` for judges, the admin's own role for us); `SNOWFLAKE_ROLE` was removed from the service spec.
+  2. `CLEARSET_JUDGE_ROLE` had **no warehouse grant**, so even correctly-roled queries failed with `000606 No active warehouse`. Judge grants went 21 → **25**: `USAGE ON WAREHOUSE COMPUTE_WH`, `USAGE ON CORTEX SEARCH SERVICE ...CLEARSET_POLICY_SEARCH_SERVICE`, `SELECT ON SEMANTIC VIEW ...CLEARSET_ANALYTICS`, and the `SNOWFLAKE.CORTEX_ANALYST_USER` database role that the Cortex Analyst REST API requires (it was only on `ACCOUNTADMIN`/`SNOWFLAKE`/`PUBLIC`).
+  3. Re-verified as the judge after the fix: views and tables read fine (`COMPUTE_WH`, 21 exceptions), `SNOWFLAKE.CORTEX.SEARCH_PREVIEW` returns 3 SOP hits, the semantic view is visible — and `CREATE TABLE` is still refused with `42501 Insufficient privileges`, so read-only is enforced by privilege, not by convention.
+- **CI ran scripts that do not exist** (`npm run test:unit`, `npm run test:integration`) → the workflow now runs `npm run server:test` (45 tests); the phantom integration job was removed and deploy/smoke jobs now skip cleanly when repository secrets are absent
 - **`npm ci` failed on Linux runners**: two `os: win32`-only native bindings were pinned as hard devDependencies (they are already optional dependencies of `oxlint`/`rolldown`) — removed, lockfile regenerated
 - **`make verify` / `make test` were broken** (they called non-existent npm scripts); `make migrate`/`make seed` pointed at a file path that no longer exists
 - `.gitignore`'s `migrate/` pattern was silently ignoring `scripts/migrate/` (the cutover tooling) — scoped to the repository root
@@ -33,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CONTRIBUTING.md` testing section rewritten to the real gate (`server/test/*.test.mjs`, `make verify`) instead of non-existent `tests/unit` · `tests/integration` · `tests/e2e` suites
 - `snowflake/00_deployment_checklist.md` now documents steps 6–10 (semantic view, resolution cases, demo expansion, date refresh) and the scripted cutover path actually used for this account
 - `package.json` identity set to `clearset-ai@2.1.1` (was `madhan@0.0.0`)
+- **CoCo CLI replay made judge-visible**: the investigation prompt now requires a `STEP <n> - <TITLE>` header for all 10 sections, and the replay parser understands provenance labels behind list markers (`1. [LIVE SNOWFLAKE] ...`) while rejecting decorative ruling from highlights — a live re-run produced 11 sections and 56 labelled evidence lines instead of 4 sections and 5 lines
+- `VITE_COCO_CLI_REPLAY` enabled for the production bundle; the recorded `TRD-92831` investigation is committed at `public/coco-replay.json`, so a judge can watch a real run without needing CoCo credits
+- Measured run figures documented in the README (4 min 28 s wall clock, 91/100 independent match) with an explicit note that no manual-baseline "time saved" claim is made
+- Redeployed to SPCS with image digest `sha256:1559651f2b4bb50a61ace70ea311edb078d6498b4efc762d859e5c698448cb5c` (spec digest `28cb2192…`); instance `READY`, `authentication successful using: OAUTH`, ingress still 302-gated
 
 ## [2.1.1] - 2026-09-29
 

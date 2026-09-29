@@ -10,7 +10,7 @@
 
 `React 19` · `TypeScript` · `Express` · `Snowflake Cortex` · `SPCS Production`
 
-![tests](https://img.shields.io/badge/tests-42%20passing-brightgreen) ![lint](https://img.shields.io/badge/lint-oxlint%200%20errors-blue) ![license](https://img.shields.io/badge/license-MIT-blue) ![node](https://img.shields.io/badge/node-%E2%89%A520-green) ![Snowflake](https://img.shields.io/badge/Snowflake-CoCo%20Hackathon%202026-red)
+![tests](https://img.shields.io/badge/tests-45%20passing-brightgreen) ![lint](https://img.shields.io/badge/lint-oxlint%200%20errors-blue) ![license](https://img.shields.io/badge/license-MIT-blue) ![node](https://img.shields.io/badge/node-%E2%89%A520-green) ![Snowflake](https://img.shields.io/badge/Snowflake-CoCo%20Hackathon%202026-red)
 
 ---
 
@@ -27,7 +27,7 @@
 
 **📋 Full evaluation script → [docs/JUDGE_QUICKSTART.md](docs/JUDGE_QUICKSTART.md)**
 
-Image digest `sha256:c0956eba…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
+Image digest `sha256:1559651f…` · Container `READY` · Restarts `0` · Auth `OAUTH only`
 
 </div>
 
@@ -81,6 +81,8 @@ npm run coco:investigate -- TRD-92831
 - **Launcher:** `scripts/coco_investigate.mjs` — preflights app health, writes the prompt via `--file` (shell-quoting-safe), runs `cortex exec --allowed Bash --max-turns 60`, enforces ID validation
 - **The agent does real work:** it discovers `snowsql` on its own, queries `TRADES`/`EXCEPTIONS`/`COUNTERPARTIES`/`SETTLEMENT_EVENTS` itself, cross-references SOPs, and produces a structured investigation ending in `AWAITING ANALYST AUTHORISATION`
 - **Verified live** on both hero trades with zero field drift vs raw SQL ground truth — and zero cross-contamination between runs (`--no-history`)
+- **Measured run (2026-09-29):** 4 min 28 s wall clock → all 10 steps, 11 replay sections, **56 provenance-labelled evidence lines** (45 `LIVE SNOWFLAKE`, 7 `COMPUTED`, 2 `CORTEX ANALYST`, 1 `CORTEX SEARCH`), deterministic score **91/100** independently matching Snowflake's stored score. We deliberately claim no "minutes saved" figure — the manual baseline was never instrumented, and a made-up number would undermine everything else in this README.
+- **Replayable without CoCo credits:** every successful run is written to `public/coco-replay.json` and shown by the in-app **CoCo CLI Replay** panel, so an evaluator can step through a real investigation even if the account's CoCo entitlement is unavailable at judging time.
 - Full procedure, safety notes, and verification transcript: [`docs/COCO_RUNBOOK.md`](docs/COCO_RUNBOOK.md)
 
 ---
@@ -205,6 +207,12 @@ service-spec change, no redeploy.
 Documented in `.env.example` and `server/.env.example`. Current local demo
 settings live in `.env` (git-ignored).
 
+**Currently deployed state:** service spec carries `PREDICTIVE_ENGINE_ENABLED=true`,
+and the production bundle is built with all three `VITE_*` flags **on** (the
+replay panel reads the committed artefact `public/coco-replay.json`). Rolling any
+of them back is a one-line flag flip plus a rebuild — no schema change, no
+service-spec change.
+
 ---
 
 ## 📋 Verified Against Live Snowflake
@@ -261,7 +269,7 @@ clearset-ai/
 ├── service-spec.yaml          # SPCS service specification (deployed)
 ├── docker-compose.yml         # Local containerised stack (backend + frontend)
 ├── Dockerfile                 # Multi-stage production image (pre-built SPA)
-├── .github/workflows/ci.yml   # CI gate: lint → typecheck → 42 tests → build
+├── .github/workflows/ci.yml   # CI gate: lint → typecheck → 45 tests → build
 ├── server/                    # Node.js + TypeScript Backend (Express)
 │   ├── index.ts               # Server entry: route wiring + Cortex Analyst auth
 │   ├── routes/                # predict.ts — flag-guarded /api/predict & /api/metrics
@@ -373,7 +381,7 @@ curl -X POST http://localhost:3001/api/cortex/analyst \
 
 > 💡 Demo looking stale? `snowflake/10_refresh_demo_dates.sql` re-anchors all non-protected trades to today's cutoffs — idempotent, rerunnable forever.
 
-### Run the test suite (42 tests, no network needed)
+### Run the test suite (45 tests, no network needed)
 
 ```bash
 npm run server:test
@@ -433,7 +441,7 @@ docker build -t lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clea
 # 2. Push via Snowflake registry auth
 snow spcs image-registry login --connection clearset-hack
 docker push lhbbrso-dz87434.registry.snowflakecomputing.com/clearset_db/clearset_schema/clearset_repo/clearset-ai:latest
-# → digest sha256:c0956ebaacbf974f637b94edc6e23c2c41d4c206de7c3b690e52e851c4ae8f35
+# → digest sha256:1559651f2b4bb50a61ace70ea311edb078d6498b4efc762d859e5c698448cb5c
 
 # 3. Create/Upgrade service
 snow spcs service create CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \

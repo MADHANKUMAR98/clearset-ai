@@ -17,8 +17,8 @@ The design rule that governs everything: **every number wears its provenance** (
 | Path | How | Notes |
 |------|-----|-------|
 | **Production (SPCS)** | https://eabwoc-lhbbrso-dz87434.snowflakecomputing.app | Two supported login options below |
-| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires ≈ 2026-11-03 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level |
-| **Local run** | See README "Quickstart" — backend :3001 + Vite :5173 | Same code that's deployed (image digest `sha256:c0956eba…`); runs against your own Snowflake trial account |
+| **Judge account (recommended)** | Username `CLEARSET_JUDGE` · Password `JudgeDemo26` · auto-expires ≈ 2026-11-03 | Log in at the URL with these credentials and the app opens directly. Read-only role — writes are blocked at the Snowflake privilege level (verified 2026-09-29: `CREATE TABLE` → `42501 Insufficient privileges`) |
+| **Local run** | See README "Quickstart" — backend :3001 + Vite :5173 | Same code that's deployed (image digest `sha256:1559651f…`); runs against your own Snowflake trial account |
 
 **Why there is no public guest mode:** the app is OAuth-gated inside a Snowflake account by design — a settlement copilot anyone can open would be a compliance failure. Judge accounts are provisioned read-only and time-boxed instead.
 
@@ -42,7 +42,7 @@ The design rule that governs everything: **every number wears its provenance** (
    npm run coco:investigate -- TRD-92831
    ```
    This launches the actual Cortex Code CLI (`cortex exec`) driving a registered skill (`cortex skill list` shows `investigate-settlement-exception`). The agent discovers `snowsql` itself, queries the live tables itself, and ends with `AWAITING ANALYST AUTHORISATION`. Full transcript: [`COCO_RUNBOOK.md`](COCO_RUNBOOK.md).
-8. **Tests** *(optional, 10s)*: `npm run server:test` → **42 passing**, zero network required.
+8. **Tests** *(optional, 10s)*: `npm run server:test` → **45 passing**, zero network required.
 
 ---
 
@@ -58,6 +58,8 @@ The design rule that governs everything: **every number wears its provenance** (
 ## 4 · Security posture in one glance
 
 Secrets never leave the server; SPCS runtime uses injected OAUTH tokens only (no external access integration); all SQL parameterized; approvals persisted with approver identity; image scanned clean pre-push. Details: README "Security Posture".
+
+*Judge role verified 2026-09-29 by signing in as `CLEARSET_JUDGE`: **25 grants** — `SELECT` on the demo tables/views, `USAGE` on the database/schema/endpoint/warehouse/Cortex Search service, `SELECT` on the `CLEARSET_ANALYTICS` semantic view and the `SNOWFLAKE.CORTEX_ANALYST_USER` database role. Those four compute/AI grants are what make Cortex Search, Cortex Analyst and every query actually run for you; none of them allow a write, and `CREATE TABLE` is refused with `42501`.*
 
 ---
 

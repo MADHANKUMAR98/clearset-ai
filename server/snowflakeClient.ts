@@ -135,7 +135,16 @@ export class SnowflakeClient {
     const host = process.env.SNOWFLAKE_HOST;
 
     if (spcsToken && host) {
-      // Inside Snowflake App Runtime / SPCS: credential-free OAuth via injected token
+      // Inside Snowflake App Runtime / SPCS: credential-free OAuth via injected token.
+      //
+      // NOTE: `role` is deliberately NOT passed here. The injected token belongs to
+      // the user who is signed in, so the session must open with *their* role
+      // (judges get CLEARSET_JUDGE_ROLE, admins get their own default role).
+      // Forcing a fixed role — e.g. SNOWFLAKE_ROLE=ACCOUNTADMIN — makes the driver
+      // issue USE ROLE for a role the signed-in user does not hold, and the
+      // connection is rejected outright (08001 / 250001: "Role ... is not granted
+      // to this user"), which breaks every SQL-backed page for judges.
+      const sessionRole = process.env.SNOWFLAKE_OAUTH_ROLE?.trim();
       return snowflake.createConnection({
         account: this.config.account || process.env.SNOWFLAKE_ACCOUNT || '',
         username: this.config.username || process.env.SNOWFLAKE_USER || '',
@@ -145,7 +154,7 @@ export class SnowflakeClient {
         database: this.config.database,
         schema: this.config.schema,
         warehouse: this.config.warehouse,
-        role: this.config.role,
+        ...(sessionRole ? { role: sessionRole } : {}),
         clientSessionKeepAlive: true,
       });
     }
