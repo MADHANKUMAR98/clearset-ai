@@ -113,8 +113,9 @@ jobs:
         env:
           REGISTRY: ${{ secrets.SNOWFLAKE_REGISTRY }}
           REGISTRY_TOKEN: ${{ secrets.SNOWFLAKE_REGISTRY_TOKEN }}
+          REGISTRY_USER: ${{ secrets.SNOWFLAKE_USER }}
         run: |
-          if [ -n "$REGISTRY" ] && [ -n "$REGISTRY_TOKEN" ]; then
+          if [ -n "$REGISTRY" ] && [ -n "$REGISTRY_TOKEN" ] && [ -n "$REGISTRY_USER" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
@@ -134,7 +135,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.SNOWFLAKE_REGISTRY }}
-          username: 0sessiontoken
+          username: ${{ secrets.SNOWFLAKE_USER }}
           password: ${{ secrets.SNOWFLAKE_REGISTRY_TOKEN }}
 
       - name: Extract metadata
@@ -146,6 +147,7 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha
+            type=raw,value=latest
 
       - name: Build and push
         if: steps.creds.outputs.available == 'true'
@@ -171,8 +173,10 @@ jobs:
         id: creds
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
         run: |
-          if [ -n "$SNOWFLAKE_ACCOUNT" ]; then
+          if [ -n "$SNOWFLAKE_ACCOUNT" ] && [ -n "$SNOWFLAKE_USER" ] && [ -n "$SNOWFLAKE_PASSWORD" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
@@ -185,20 +189,24 @@ jobs:
 
       - name: Setup Snowflake CLI
         if: steps.creds.outputs.available == 'true'
+<<<<<<< HEAD
         uses: snowflakedb/snowflake-cli-action@v2
         with:
           version: latest
+=======
+        uses: snowflakedb/snowflake-cli-action@v1
+>>>>>>> b35cbd8 (feat: add CI/CD pipeline workflow and SQL script to seed demo resolution cases)
 
       - name: Upgrade SPCS service
         if: steps.creds.outputs.available == 'true'
-        run: |
-          snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
-            --spec-path service-spec.yaml \
-            --connection ${{ secrets.SNOWFLAKE_CONNECTION }}
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+        run: |
+          snow spcs service upgrade CLEARSET_DB.CLEARSET_SCHEMA.CLEARSET_AI \
+            --spec-path service-spec.yaml \
+            --temporary-connection
 
   # ============================================================
   # SMOKE TESTS (against the deployed ingress)
