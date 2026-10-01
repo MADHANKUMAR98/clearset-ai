@@ -189,13 +189,9 @@ jobs:
 
       - name: Setup Snowflake CLI
         if: steps.creds.outputs.available == 'true'
-<<<<<<< HEAD
         uses: snowflakedb/snowflake-cli-action@v2
         with:
           version: latest
-=======
-        uses: snowflakedb/snowflake-cli-action@v1
->>>>>>> b35cbd8 (feat: add CI/CD pipeline workflow and SQL script to seed demo resolution cases)
 
       - name: Upgrade SPCS service
         if: steps.creds.outputs.available == 'true'
